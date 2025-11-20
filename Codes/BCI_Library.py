@@ -1,0 +1,323 @@
+import numpy as np
+from mne.time_frequency import psd_array_welch
+from sklearn.model_selection import KFold
+from sklearn.preprocessing import StandardScaler
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from sklearn.metrics import accuracy_score, confusion_matrix
+from mne.viz import Brain
+import mne
+
+
+def plot_brain(regions_to_color=[], atlas="aparc", printnameregions=False, brain_object_dict={}, showbrainplot=True, savepath=None, colors=[(1, 0, 0)]):
+    mne.viz.set_3d_backend('pyvistaqt')  # or 'pyvistaqt'
+    labels = mne.read_labels_from_annot("fsaverage", parc=atlas) # the Desikan-Killiany Atlas
+    rtc = [i for i in regions_to_color]
+    for i in range(len(rtc)):
+        if type(rtc[i]) == int:
+            rtc[i] = labels[rtc[i]].name
+            if printnameregions:
+                print(rtc[i])
+    
+    standard_dict = {
+            "subject": "fsaverage",
+            "surf": "pial",
+            "hemi": "split", #split, both, lh,rh
+            "background": "white",
+            "views": ["dorsal"],
+            "size": (600, 600),
+            # Other parameters
+            # "subjects_dir": subjects_dir,
+            # "views": ["lat", "med"],
+            # "offset": "auto",
+            # "view_layout": "horizontal",
+        }
+        # 'dorsal', 'ventral', 'lat', 'medial', etc.)
+        # views = 'medial'  # For example, 'lat' (lateral) view
+        # brain.show_view(view=views)
+
+    for key in standard_dict.keys():
+        if key not in brain_object_dict:
+            brain_object_dict[key] = standard_dict[key]
+    brain_object_dict["show"] = showbrainplot
+
+    brain = Brain(**brain_object_dict)
+
+    if len(colors)==1:
+        colors = np.repeat(colors, len(rtc), axis=0)
+    elif len(colors)!= len(rtc):
+        raise ValueError(f"Number of colors ({len(colors)}) must match number of regions_to_color ({len(rtc)}).")
+
+
+    for i,region in enumerate(rtc):
+        for label in labels:
+            if label.name == region:
+                brain.add_label(label, color=colors[i])  # Set color to red
+
+
+
+
+
+    if savepath is not None:
+        brain.save_image(savepath)
+
+def read_subject(file, refs, subject_index, verbose=True):
+    data = []
+    
+    # 96 trials, I read each trial
+    for i in range (96):
+        temp_trial = np.array(file[refs[i][subject_index]]).T
+        if temp_trial.shape == (68, 1750):
+            data.append(temp_trial)
+        else:
+            if verbose: print(f"subject_{subject_index} trial_{i} has wrong shape ({temp_trial.shape})")
+
+    data=np.array(data)
+    return data
+
+
+def extract_features(data_MI, data_Rest, sfreq, starttime, endtime,
+                    min_freq_frature, max_freq_frature, nbest_regions, 
+                    kargs_welch={"fmin":2, "fmax":45,"n_per_seg":250, "n_fft":300,"n_overlap":125},
+                    important_regions=[4, 5, 32, 33, 44, 45, 48, 49]):
+    """
+    Extract frequency-domain features from MI and Rest data.
+    Features are the mean and max in a fixed window of freqs (min_freq_frature, max_freq_frature)
+    For the nbest_regions ROIs (where i make sure to include the important regions).
+    These are the regions where the max(Rest-MI) / max(Rest) has the max values.
+    
+    ----------
+    - data_MI, data_Rest: (n_trials x n_ROIs x n_samples).
+    - sfreq: sampling frequency
+    - starttime, endtime : in secs, Segment boundaries to apply to data.
+    - min_freq_frature, max_freq_frature:
+        Frequency limits for feature extraction (where to compute mean and max)
+    - nbest_regions : Number of most informative regions to select.
+    - kargs_welch : dict, Parameters for scipy.signal.welch()
+        kargs = {"sfreq":sfreq, "fmin":fmin, "fmax":fmax,
+                "n_per_seg":n_per_seg, "n_fft":n_fft,
+                "n_overlap":n_overlap}
+    - important regions: Regions to be included for sure
+    
+
+    Returns
+    -------
+    - features_MI, - features_Rest: mean and max of each selected ROI, 
+        computed in the freq interval (min_freq_frature,max_freq_frature)
+    - labels_MI, - labels_Rest (0 for Rest and 1 for MI)
+    - selected_regions
+    """
+
+    ntotROIs = data_MI.shape[1]
+    nTrials_MI = data_MI.shape[0]
+    nTrials_Rest = data_Rest.shape[0]
+    #data.shape (trials, ROIs, timepoints)
+
+    stime = 1 * starttime
+    etime = 1 * endtime
+    kargs_welch["sfreq"]=sfreq
+
+    wpsdMI, frequiMI = psd_array_welch(data_MI[:,:,stime:-etime], **kargs_welch )
+    wpsdRest, frequiRest = psd_array_welch(data_Rest[:,:,stime:-etime], **kargs_welch)
+    # wpsdMI.shape (trials, ROIs, freqs)
+
+    # search the best regions 
+    # (regions where the the %difference at the freq with max difference is the highest)
+    # I choose the nregions where I have the greatest difference between MI and Rest 
+    # (but being careful to include the Interesting_regions)
+    max_diff_perc = []
+    max_rest = []
+    for roi in range(ntotROIs):
+        wpsdMI_1ROI =wpsdMI[:,roi,:]
+        wpsdRest_1ROI =wpsdRest[:,roi,:]
+        wpsd_MI_mean = wpsdMI_1ROI.mean(axis=0)
+        wpsd_Rest_mean = wpsdRest_1ROI.mean(axis=0)
+        
+        max_rest.append(np.max(wpsd_Rest_mean))
+        max_diff_perc.append(np.max(wpsd_Rest_mean-wpsd_MI_mean)/max_rest[-1])
+        
+
+    selected_regions = [i for i in important_regions]
+    for i in range(ntotROIs):
+        if len(selected_regions) >= nbest_regions:
+            break
+        if np.argsort(max_diff_perc)[-i-1] not in selected_regions:
+            selected_regions.append(int(np.argsort(max_diff_perc)[-i-1]))
+        
+
+    # selecting the freq range on wich compute features 
+    # as features i chose the max and the maen of selected_ROIs 
+    # in freqs (min_freq_frature, min_freq_frature)
+    start_freq_idx = np.where(frequiMI>=min_freq_frature)[0][0]
+    end_freq_idx = np.where(frequiMI<=max_freq_frature)[0][-1]
+
+    wpsdRest_ROIs_freqs = wpsdRest[:,selected_regions,start_freq_idx:end_freq_idx]
+    wpsdMI_ROIs_freqs = wpsdMI[:,selected_regions,start_freq_idx:end_freq_idx]
+    # wpsdMI_ROIs_freqs.shape (trials, selected_ROIs, selected_Freqs)
+
+    features_MI = np.concatenate((wpsdMI_ROIs_freqs.mean(axis=-1,keepdims=True),
+                                wpsdMI_ROIs_freqs.max(axis=-1,keepdims=True)),
+                                axis=-1)
+    # features_MI.shape (Trials, selected_ROIs, 2)
+    features_MI = features_MI.reshape(nTrials_MI,-1)
+
+    features_Rest = np.concatenate((wpsdRest_ROIs_freqs.mean(axis=-1,keepdims=True),
+                                wpsdRest_ROIs_freqs.max(axis=-1,keepdims=True)),
+                                axis=-1)
+    features_Rest = features_Rest.reshape(nTrials_Rest,-1)
+
+    labels_MI = np.array([1 for i in range(nTrials_MI)])
+    labels_Rest = np.array([0 for i in range(nTrials_Rest)])
+
+    return features_MI, features_Rest, labels_MI, labels_Rest, selected_regions
+
+def extract_features_more_bands(data_MI, data_Rest, sfreq, starttime, endtime, nbest_regions,
+                    min_freq_frature=[4,8,13], max_freq_frature=[8,13,25], 
+                    kargs_welch={"fmin":2, "fmax":45,"n_per_seg":250, "n_fft":300,"n_overlap":125},
+                    important_regions=[4, 5, 32, 33, 44, 45, 48, 49]):
+    """
+    Extract frequency-domain features from MI and Rest data.
+    Features are the mean and max in a fixed window of freqs (min_freq_frature, max_freq_frature)
+    For the nbest_regions ROIs (where i make sure to include the important regions).
+    These are the regions where the max(Rest-MI) / max(Rest) has the max values.
+    
+    ----------
+    - data_MI, data_Rest: (n_trials x n_ROIs x n_samples).
+    - sfreq: sampling frequency
+    - starttime, endtime : in secs, Segment boundaries to apply to data.
+    - min_freq_frature, max_freq_frature:
+        Frequency limits for feature extraction (where to compute mean and max)
+    - nbest_regions : Number of most informative regions to select.
+    - kargs_welch : dict, Parameters for scipy.signal.welch()
+        kargs = {"sfreq":sfreq, "fmin":fmin, "fmax":fmax,
+                "n_per_seg":n_per_seg, "n_fft":n_fft,
+                "n_overlap":n_overlap}
+    - important regions: Regions to be included for sure
+    
+
+    Returns
+    -------
+    - features_MI, - features_Rest: mean and max of each selected ROI, 
+        computed in the freq interval (min_freq_frature,max_freq_frature)
+    - labels_MI, - labels_Rest (0 for Rest and 1 for MI)
+    - selected_regions
+    """
+
+    ntotROIs = data_MI.shape[1]
+    nTrials_MI = data_MI.shape[0]
+    nTrials_Rest = data_Rest.shape[0]
+    #data.shape (trials, ROIs, timepoints)
+
+    stime = 1 * starttime
+    etime = 1 * endtime
+    kargs_welch["sfreq"]=sfreq
+
+    wpsdMI, frequiMI = psd_array_welch(data_MI[:,:,stime:-etime], **kargs_welch )
+    wpsdRest, frequiRest = psd_array_welch(data_Rest[:,:,stime:-etime], **kargs_welch)
+    # wpsdMI.shape (trials, ROIs, freqs)
+
+    # search the best regions 
+    # (regions where the the %difference at the freq with max difference is the highest)
+    # I choose the nregions where I have the greatest difference between MI and Rest 
+    # (but being careful to include the Interesting_regions)
+    max_diff_perc = []
+    max_rest = []
+    for roi in range(ntotROIs):
+        wpsdMI_1ROI =wpsdMI[:,roi,:]
+        wpsdRest_1ROI =wpsdRest[:,roi,:]
+        wpsd_MI_mean = wpsdMI_1ROI.mean(axis=0)
+        wpsd_Rest_mean = wpsdRest_1ROI.mean(axis=0)
+        
+        max_rest.append(np.max(wpsd_Rest_mean))
+        max_diff_perc.append(np.max(wpsd_Rest_mean-wpsd_MI_mean)/max_rest[-1])
+        
+
+    selected_regions = [i for i in important_regions]
+    for i in range(ntotROIs):
+        if len(selected_regions) >= nbest_regions:
+            break
+        if np.argsort(max_diff_perc)[-i-1] not in selected_regions:
+            selected_regions.append(int(np.argsort(max_diff_perc)[-i-1]))
+        
+
+    # selecting the freq range on wich compute features 
+    # as features i chose the max and the maen of selected_ROIs 
+    # in freqs (min_freq_frature, min_freq_frature)
+
+
+    start_freq_idx = [np.where(frequiMI>=min_freq_frature[i])[0][0] for i in range(len(min_freq_frature))]
+    end_freq_idx = [np.where(frequiMI<=max_freq_frature[i])[0][-1] for i in range(len(max_freq_frature))]
+    features_MI = []
+    features_Rest = []
+    for _ in range(len(min_freq_frature)):
+
+        wpsdRest_ROIs_freqs = wpsdRest[:,selected_regions,start_freq_idx[_]:end_freq_idx[_]+1]
+        wpsdMI_ROIs_freqs = wpsdMI[:,selected_regions,start_freq_idx[_]:end_freq_idx[_]+1]
+        # wpsdMI_ROIs_freqs.shape (trials, selected_ROIs, selected_Freqs)
+
+        features_MI.append(wpsdMI_ROIs_freqs.mean(axis=-1,keepdims=True))
+        features_MI.append(wpsdMI_ROIs_freqs.max(axis=-1,keepdims=True))
+        # features_MI[0].shape (Trials, selected_ROIs, 1)
+        
+        features_Rest.append(wpsdRest_ROIs_freqs.mean(axis=-1,keepdims=True))
+        features_Rest.append(wpsdRest_ROIs_freqs.max(axis=-1,keepdims=True))
+    
+    features_MI = np.concatenate(features_MI,axis=-1)
+    features_Rest = np.concatenate(features_Rest,axis=-1)
+    # features_MI.shape (Trials, selected_ROIs,6)
+
+    features_MI = features_MI.reshape(nTrials_MI,-1)
+    features_Rest = features_Rest.reshape(nTrials_Rest,-1)
+
+    labels_MI = np.array([1 for i in range(nTrials_MI)])
+    labels_Rest = np.array([0 for i in range(nTrials_Rest)])
+
+    return features_MI, features_Rest, labels_MI, labels_Rest, selected_regions
+
+
+
+def train_models(features, labels, n_kfold=5, scaler=StandardScaler, 
+                 method=LinearDiscriminantAnalysis, seed=647):
+    
+    kf = KFold(n_splits=n_kfold, shuffle=True, random_state=seed)
+
+    fold_accuracies = []
+    fold_confusions = []
+    trained_models = []
+    val_indexes = []
+
+    for fold_idx, (train_idx, val_idx) in enumerate(kf.split(features)):
+        print(f"\n----- Fold {fold_idx+1} -----")
+
+        X_train, X_val = features[train_idx], features[val_idx]
+        y_train, y_val = labels[train_idx], labels[val_idx]
+        val_indexes.append(val_idx)
+
+        # StandardScaler:
+        scaler_instance = scaler()
+        X_train_scaled = scaler_instance.fit_transform(X_train)
+        X_val_scaled   = scaler_instance.transform(X_val)
+
+        # Model instance
+        model = method()
+        model.fit(X_train_scaled, y_train)
+        trained_models.append(model)
+
+        # Predict on validation
+        y_pred = model.predict(X_val_scaled)
+
+        # Accuracy
+        acc = accuracy_score(y_val, y_pred)
+        fold_accuracies.append(acc)
+
+        # Confusion matrix
+        cm = confusion_matrix(y_val, y_pred)
+        fold_confusions.append(cm)
+
+        print(f"Fold {fold_idx+1} accuracy: {acc:.4f}, Confusion matrix:")
+        print(cm)
+
+    # Summary
+    print("\n==================================")
+    print("Mean accuracy:", np.mean(fold_accuracies))
+    print("Std accuracy:", np.std(fold_accuracies))
+    return fold_accuracies, fold_confusions, trained_models,val_indexes
