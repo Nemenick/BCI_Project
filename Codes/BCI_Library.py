@@ -63,7 +63,13 @@ def plot_brain(regions_to_color=[], atlas="aparc", printnameregions=False, brain
         brain.save_image(savepath)
 
 def read_subject(folder, DataType, condition:str, subject_index, verbose=True):
-    
+    """
+    folder          : str, path to the folder containing the .mat files 
+    DataType        : str, "EEG" or "MEG"     
+    condition:str   : "MI" or "rest"                
+    subject_index   : int, subject index (0-19)       
+    verbose=True    
+    """
     if condition.lower=="rest":
         condition = "Baseline"
 
@@ -240,17 +246,22 @@ def train_models(features, labels, n_kfold=5, scaler=StandardScaler,
     print("Std accuracy:", np.std(fold_accuracies))
     return fold_accuracies, fold_confusions, trained_models,val_indexes
 
-def saveresults_pickle(new_rows, filepath, backup=True):
+def saveresults_pickle(new_rows, filepath, backup=True, resetindex=True):
     # filepath "/Users/giovanni.messuti/Desktop/BCI_Project/Results/BCI_Performances.pkl"
     try:
         results = pd.read_pickle(filepath)
         if backup:
             results.to_pickle(filepath+"Backup")
         results=pd.concat((results,pd.DataFrame(new_rows)))
+        if resetindex:
+            results.reset_index(drop=True,inplace=True)
         results.to_pickle(filepath)
     except:
         print(f"Cannot Read a previous file, creating a new one at {filepath}")
+        if resetindex:
+            new_rows.reset_index(drop=True,inplace=True)
         new_rows.to_pickle(filepath) 
+
 
 
 # deprecated 
