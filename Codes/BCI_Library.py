@@ -255,6 +255,9 @@ def saveresults_pickle(new_rows, filepath, backup=True, resetindex=True):
         results=pd.concat((results,pd.DataFrame(new_rows)))
         if resetindex:
             results.reset_index(drop=True,inplace=True)
+        index_of_duplicates = results[results.duplicated(subset=results.keys().drop("Date"))].index.values
+        print(f"There are {len(index_of_duplicates)} duplicated items (based on all columns except Date).\n", 
+              f"Index of the duplicated items: {index_of_duplicates}")
         results.to_pickle(filepath)
     except:
         print(f"Cannot Read a previous file, creating a new one at {filepath}")
@@ -262,6 +265,19 @@ def saveresults_pickle(new_rows, filepath, backup=True, resetindex=True):
             new_rows.reset_index(drop=True,inplace=True)
         new_rows.to_pickle(filepath) 
 
+def select_rows(dataframe, conditions):
+    """
+    Return the rows of the dataframe that match all the conditions specified in the conditions dictionary.
+    dataframe: pd.DataFrame
+    conditions: dict, where keys are column names and values are the desired values to filter on.
+    """
+    mask = pd.Series(True, index=dataframe.index)
+    for col, val in conditions.items():
+        if col not in dataframe.columns:
+            raise KeyError(f"Column '{col}' not found in DataFrame.")
+        
+        mask &= (dataframe[col] == val)
+    return dataframe[mask]
 
 
 # deprecated 
