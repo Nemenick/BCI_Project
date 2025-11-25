@@ -200,7 +200,8 @@ def extract_features_more_bands(data_MI, data_Rest, sfreq, starttime, endtime, n
     return features_MI, features_Rest, labels_MI, labels_Rest, selected_regions
 
 def train_models(features, labels, n_kfold=5, scaler=StandardScaler, 
-                 method=LinearDiscriminantAnalysis, seed=647):
+                 method=LinearDiscriminantAnalysis, seed=647,
+                 verbose=False):
     
     kf = KFold(n_splits=n_kfold, shuffle=True, random_state=seed)
 
@@ -210,7 +211,8 @@ def train_models(features, labels, n_kfold=5, scaler=StandardScaler,
     val_indexes = []
 
     for fold_idx, (train_idx, val_idx) in enumerate(kf.split(features)):
-        print(f"\n----- Fold {fold_idx+1} -----")
+        if verbose:
+            print(f"\n----- Fold {fold_idx+1} -----")
 
         X_train, X_val = features[train_idx], features[val_idx]
         y_train, y_val = labels[train_idx], labels[val_idx]
@@ -236,14 +238,15 @@ def train_models(features, labels, n_kfold=5, scaler=StandardScaler,
         # Confusion matrix
         cm = confusion_matrix(y_val, y_pred)
         fold_confusions.append(cm)
-
-        print(f"Fold {fold_idx+1} accuracy: {acc:.4f}, Confusion matrix:")
-        print(cm)
+        if verbose:
+            print(f"Fold {fold_idx+1} accuracy: {acc:.4f}, Confusion matrix:")
+            print(cm)
 
     # Summary
-    print("\n==================================")
-    print("Mean accuracy:", np.mean(fold_accuracies))
-    print("Std accuracy:", np.std(fold_accuracies))
+    if verbose:
+        print("\n==================================")
+        print("Mean accuracy:", np.mean(fold_accuracies))
+        print("Std accuracy:", np.std(fold_accuracies))
     return fold_accuracies, fold_confusions, trained_models,val_indexes
 
 def saveresults_pickle(new_rows, filepath, backup=True, resetindex=True):
@@ -255,15 +258,16 @@ def saveresults_pickle(new_rows, filepath, backup=True, resetindex=True):
         results=pd.concat((results,pd.DataFrame(new_rows)))
         if resetindex:
             results.reset_index(drop=True,inplace=True)
-        index_of_duplicates = results[results.duplicated(subset=results.keys().drop("Date"))].index.values
-        print(f"There are {len(index_of_duplicates)} duplicated items (based on all columns except Date).\n", 
+        index_of_duplicates = results[results.duplicated(subset=results.keys().drop(["Date","ROIs","Performance"]))].index.values
+        print(f"There are {len(index_of_duplicates)} duplicated items (based on all columns except Date, ROIs, Performance).\n", 
               f"Index of the duplicated items: {index_of_duplicates}")
         results.to_pickle(filepath)
-    except:
+    except Exception as e:
+        print("#######"*10,"\n","Exception occurred:", e,"\n","#######"*10)
         print(f"Cannot Read a previous file, creating a new one at {filepath}")
         if resetindex:
             new_rows.reset_index(drop=True,inplace=True)
-        new_rows.to_pickle(filepath) 
+        new_rows.to_pickle(filepath+"new") 
 
 def select_rows(dataframe, conditions):
     """
