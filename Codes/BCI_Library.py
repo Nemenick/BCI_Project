@@ -8,6 +8,7 @@ from mne.viz import Brain
 import mne
 import pandas as pd
 import h5py
+import os
 
 
 def plot_brain(regions_to_color=[], atlas="aparc", printnameregions=False, brain_object_dict={}, showbrainplot=True, savepath=None, colors=[(1, 0, 0)]):
@@ -224,7 +225,7 @@ def train_models(features, labels, n_kfold=5, scaler=StandardScaler,
         X_val_scaled   = scaler_instance.transform(X_val)
 
         # Model instance
-        model = method()
+        model = method(random_state=seed)
         model.fit(X_train_scaled, y_train)
         trained_models.append(model)
 
@@ -249,25 +250,44 @@ def train_models(features, labels, n_kfold=5, scaler=StandardScaler,
         print("Std accuracy:", np.std(fold_accuracies))
     return fold_accuracies, fold_confusions, trained_models,val_indexes
 
-def saveresults_pickle(new_rows, filepath, backup=True, resetindex=True):
+def saveresults_pickle(new_rows, inputfile=None, outputfile=None, backup=True, resetindex=True):
     # filepath "/Users/giovanni.messuti/Desktop/BCI_Project/Results/BCI_Performances.pkl"
+    """
+    if inputfile is a valid pickle file, read it and append the new_rows to it.
+    If not, create a new pickle file with new_rows.
+    If outputfile is None, save to inputfile.
+    If both inputfile and outputfile are None, save to a default file
+    If backup is True, create a backup of the inputfile before modifying it.
+    """
+
+    if outputfile is None:
+        outputfile = inputfile
+    if outputfile is None:
+        outputfile = "BCI_Performances.pkl"
+        print(f"No input or output file specified, saving to a default file")
+
+    while outputfile != inputfile and os.path.exists(outputfile):
+        print(f"Output file {outputfile} is different from Input file and already exists. adding extention '_new' to the output file name.")
+        outputfile = outputfile + "_new"
+
     try:
-        results = pd.read_pickle(filepath)
+        results = pd.read_pickle(inputfile)
         if backup:
-            results.to_pickle(filepath+"Backup")
+            results.to_pickle(inputfile+"Backup")
         results=pd.concat((results,pd.DataFrame(new_rows)))
         if resetindex:
             results.reset_index(drop=True,inplace=True)
         index_of_duplicates = results[results.duplicated(subset=results.keys().drop(["Date","ROIs","Performance"]))].index.values
         print(f"There are {len(index_of_duplicates)} duplicated items (based on all columns except Date, ROIs, Performance).\n", 
               f"Index of the duplicated items: {index_of_duplicates}")
-        results.to_pickle(filepath)
+        results.to_pickle(outputfile)
+
     except Exception as e:
         print("#######"*10,"\n","Exception occurred:", e,"\n","#######"*10)
-        print(f"Cannot Read a previous file, creating a new one at {filepath}")
+        print(f"Cannot Read a previous file {inputfile}, creating a new one at {outputfile}")
         if resetindex:
             new_rows.reset_index(drop=True,inplace=True)
-        new_rows.to_pickle(filepath+"new") 
+        new_rows.to_pickle(outputfile+"new") 
 
 def select_rows(dataframe, conditions):
     """
