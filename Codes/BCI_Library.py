@@ -71,7 +71,7 @@ def read_subject(folder, DataType, condition:str, subject_index, verbose=True):
     subject_index   : int, subject index (0-19)       
     verbose=True    
     """
-    if condition.lower=="rest":
+    if condition.lower()=="rest" or condition.lower()=="baseline":
         condition = "Baseline"
 
     data = []
@@ -225,7 +225,10 @@ def train_models(features, labels, n_kfold=5, scaler=StandardScaler,
         X_val_scaled   = scaler_instance.transform(X_val)
 
         # Model instance
-        model = method(random_state=seed)
+        try:
+            model = method(random_state=seed)
+        except:
+            model = method()
         model.fit(X_train_scaled, y_train)
         trained_models.append(model)
 
