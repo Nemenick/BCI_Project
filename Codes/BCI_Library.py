@@ -54,14 +54,11 @@ def plot_brain(regions_to_color=[], atlas="aparc", printnameregions=False, brain
     for i,region in enumerate(rtc):
         for label in labels:
             if label.name == region:
-                brain.add_label(label, color=colors[i])  # Set color to red
-
-
-
-
+                brain.add_label(label, color=colors[i])  # Set color to redx
 
     if savepath is not None:
         brain.save_image(savepath)
+    return brain
 
 def read_subject(folder, DataType, condition:str, subject_index, verbose=True):
     """
@@ -95,7 +92,8 @@ def read_subject(folder, DataType, condition:str, subject_index, verbose=True):
 def extract_features_more_bands(data_MI, data_Rest, sfreq, starttime, endtime, nbest_regions,
                     min_freq_frature=[4,8,13], max_freq_frature=[8,13,25], 
                     kargs_welch={"fmin":2, "fmax":45,"n_per_seg":250, "n_fft":300,"n_overlap":125},
-                    important_regions=[4, 5, 32, 33, 44, 45, 48, 49]):
+                    important_regions=[4, 5, 32, 33, 44, 45, 48, 49],
+                    select_mean=True, select_max=True):
     """
     Extract frequency-domain features from MI and Rest data.
     Features are the mean and max in a fixed window of freqs (min_freq_frature, max_freq_frature)
@@ -138,11 +136,12 @@ def extract_features_more_bands(data_MI, data_Rest, sfreq, starttime, endtime, n
     etime = 1 * endtime
     kargs_welch["sfreq"]=sfreq
 
+    ######################## Compute Power Spectra ########################
     wpsdMI, frequiMI = psd_array_welch(data_MI[:,:,stime:-etime], **kargs_welch )
     wpsdRest, frequiRest = psd_array_welch(data_Rest[:,:,stime:-etime], **kargs_welch)
-    # wpsdMI.shape (trials, ROIs, freqs)
 
-    # search the best regions 
+    ######################## Search the best regions ########################
+
     # (regions where the the %difference at the freq with max difference is the highest)
     # I choose the nregions where I have the greatest difference between MI and Rest 
     # (but being careful to include the Interesting_regions)
@@ -170,6 +169,7 @@ def extract_features_more_bands(data_MI, data_Rest, sfreq, starttime, endtime, n
     # as features i chose the max and the maen of selected_ROIs 
     # in freqs (min_freq_frature, min_freq_frature)
 
+    ######################## Extract the features ########################
 
     start_freq_idx = [np.where(frequiMI>=min_freq_frature[i])[0][0] for i in range(len(min_freq_frature))]
     end_freq_idx = [np.where(frequiMI<=max_freq_frature[i])[0][-1] for i in range(len(max_freq_frature))]
@@ -181,12 +181,13 @@ def extract_features_more_bands(data_MI, data_Rest, sfreq, starttime, endtime, n
         wpsdMI_ROIs_freqs = wpsdMI[:,selected_regions,start_freq_idx[_]:end_freq_idx[_]+1]
         # wpsdMI_ROIs_freqs.shape (trials, selected_ROIs, selected_Freqs)
 
-        features_MI.append(wpsdMI_ROIs_freqs.mean(axis=-1,keepdims=True))
-        features_MI.append(wpsdMI_ROIs_freqs.max(axis=-1,keepdims=True))
-        # features_MI[0].shape (Trials, selected_ROIs, 1)
-        
-        features_Rest.append(wpsdRest_ROIs_freqs.mean(axis=-1,keepdims=True))
-        features_Rest.append(wpsdRest_ROIs_freqs.max(axis=-1,keepdims=True))
+        if select_mean:
+            features_MI.append(wpsdMI_ROIs_freqs.mean(axis=-1,keepdims=True))
+            features_Rest.append(wpsdRest_ROIs_freqs.mean(axis=-1,keepdims=True))
+
+        if select_max:  
+            features_MI.append(wpsdMI_ROIs_freqs.max(axis=-1,keepdims=True))
+            features_Rest.append(wpsdRest_ROIs_freqs.max(axis=-1,keepdims=True))
     
     features_MI = np.concatenate(features_MI,axis=-1)
     features_Rest = np.concatenate(features_Rest,axis=-1)
