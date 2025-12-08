@@ -89,7 +89,6 @@ def read_subject(folder, DataType, condition:str, subject_index, verbose=True):
 
     return data
 
-
 def train_models(data_features, labels, n_kfold=5, scaler=StandardScaler, 
                  method=LinearDiscriminantAnalysis, seed=647,
                  verbose=False):
@@ -200,87 +199,42 @@ def select_rows(dataframe, conditions):
         mask &= (dataframe[col] == val)
     return dataframe[mask]
 
-def compute_welch_select_regions(data_MI=None, data_Rest=None, sfreq=250, starttime=250, endtime=250, nbest_regions=8, 
-                    wpsdMI=None, wpsdRest=None, frequiMI=None, select_regions=True,
-                    kargs_welch={"fmin":2, "fmax":45,"n_per_seg":250, "n_fft":300,"n_overlap":125, "verbose":False},
-                    important_regions=[4, 5, 32, 33, 44, 45, 48, 49],):
+def compute_welch(data_MI, data_Rest, sfreq=250, starttime=250, endtime=250,
+                    kargs_welch={"fmin":2, "fmax":45,"n_per_seg":250, "n_fft":300,"n_overlap":125, "verbose":False}):
     """
-    Can compute spectra and / or select regions (on computed spectra or on provided spectra)
-    For the nbest_regions ROIs (where i make sure to include the important regions).
-    Selected are the regions where the max(Rest-MI) / max(Rest) has the max values.
+    Compute spectra 
     ----------
     - data_MI, data_Rest: (n_trials x n_ROIs x n_samples).
     - sfreq: sampling frequency
     - starttime, endtime : in secs, Segment boundaries to apply to data.
-    - min_freq_frature, max_freq_frature:
-        Frequency limits for feature extraction (where to compute mean and max)
-    - nbest_regions : Number of most informative regions to select.
     - kargs_welch : dict, Parameters for scipy.signal.welch()
         kargs = {"sfreq":sfreq, "fmin":fmin, "fmax":fmax,
                 "n_per_seg":n_per_seg, "n_fft":n_fft,
                 "n_overlap":n_overlap}
-    - important regions: Regions to be included for sure
-    
+    ----------
     Returns
-    -------
-    - selected_regions
     - welch spectra of the data: (n_trials x n_ROIs x n_freqs).
     """
-    try:
-        ntotROIs = data_MI.shape[1]
-    except:
-        ntotROIs = wpsdMI.shape[1]
     #data.shape (trials, ROIs, timepoints)
     returned_objects = []
 
+    # vedo se ho tutte le info che servono
+    standard_dict = {"fmin":2, "fmax":45,"n_per_seg":250, "n_fft":300,"n_overlap":125, "verbose":False}
+    for key in standard_dict.keys():
+        if key not in kargs_welch:
+            kargs_welch[key] = standard_dict[key]
+    # procedo 
+    stime = 1 * starttime
+    etime = 1 * endtime
+    kargs_welch["sfreq"]=sfreq
 
+    ######################## Compute Power Spectra ########################
+    wpsdMI, frequiMI = psd_array_welch(data_MI[:,:,stime:-etime], **kargs_welch )
+    wpsdRest, frequiRest = psd_array_welch(data_Rest[:,:,stime:-etime], **kargs_welch)
+    # wpsd.shape (trials, ROIs, freqs)
+    returned_objects.append(wpsdMI); returned_objects.append(wpsdRest); returned_objects.append(frequiMI); 
 
-
-    if wpsdMI is None:
-        # vedo se ho tutte le info che servono
-        standard_dict = {"fmin":2, "fmax":45,"n_per_seg":250, "n_fft":300,"n_overlap":125, "verbose":False}
-        for key in standard_dict.keys():
-            if key not in kargs_welch:
-                kargs_welch[key] = standard_dict[key]
-        # procedo 
-        stime = 1 * starttime
-        etime = 1 * endtime
-        kargs_welch["sfreq"]=sfreq
-        ######################## Compute Power Spectra ########################
-        wpsdMI, frequiMI = psd_array_welch(data_MI[:,:,stime:-etime], **kargs_welch )
-        wpsdRest, frequiRest = psd_array_welch(data_Rest[:,:,stime:-etime], **kargs_welch)
-        # wpsd.shape (trials, ROIs, freqs)
-        returned_objects.append(wpsdMI); returned_objects.append(wpsdRest); returned_objects.append(frequiMI); 
-
-    if select_regions:
-        ######################## Search the best regions ########################
-        # (regions where the the %difference at the freq with max difference is the highest)
-        # I choose the nregions where I have the greatest difference between MI and Rest 
-        # (but being careful to include the Interesting_regions)
-        max_diff_perc = []
-        max_rest = []
-        for roi in range(ntotROIs):
-            wpsdMI_1ROI =wpsdMI[:,roi,:]
-            wpsdRest_1ROI =wpsdRest[:,roi,:]
-            wpsd_MI_mean = wpsdMI_1ROI.mean(axis=0)
-            wpsd_Rest_mean = wpsdRest_1ROI.mean(axis=0)
-            
-            max_rest.append(np.max(wpsd_Rest_mean))
-            max_diff_perc.append(np.max(wpsd_Rest_mean-wpsd_MI_mean)/max_rest[-1])
-
-        selected_regions = [i for i in important_regions]
-        for i in range(ntotROIs):
-            if len(selected_regions) >= nbest_regions:
-                break
-            if np.argsort(max_diff_perc)[-i-1] not in selected_regions:
-                selected_regions.append(int(np.argsort(max_diff_perc)[-i-1]))
-
-        if returned_objects == []:
-            returned_objects = selected_regions
-        else:
-            returned_objects.append(selected_regions)
-    
-    return returned_objects # [wpsdMI, wpsdRest, frequiMI, selected_regions]
+    return returned_objects # [wpsdMI, wpsdRest, frequiMI]
         
 def extract_features_from_spectra_more_bands(wpsdMI, wpsdRest, selected_regions, frequiMI,
                     min_freq_frature=[4,8,12], max_freq_frature=[8,12,30], 
@@ -345,6 +299,34 @@ def extract_features_from_spectra_more_bands(wpsdMI, wpsdRest, selected_regions,
     labels_Rest = np.array([0 for _ in range(nTrials_Rest)])
 
     return features_MI, features_Rest, labels_MI, labels_Rest, selected_regions
+
+def sort_rank(rankings):
+    """
+    Useful for representation!
+    If i have a way to rank regions based on their importance among folds
+    this programs sorts the regions'numbers based on who has the better rank
+    (ex, region 23 is alwais in position 0, it becomes region 0 after the algorithm)
+
+    rankings: numpy array (folds, region sorted based on their rank)
+    return:
+    rankings_sorted: numpy array (folds, renamed region sorted based on their rank)
+    sorted_regions: correspondence between old numbers of the reion and new ones
+    """
+
+    unique_regions = np.unique(rankings)
+    avg_positions = {}
+
+    for region in unique_regions:
+        # column index = rank position
+        positions = np.where(rankings == region)[1]
+        avg_positions[region] = positions.mean()
+
+    # Sort regions by their average rank (importance)
+    sorted_regions = [r for r, _ in sorted(avg_positions.items(), key=lambda x: x[1])]
+    region_to_new_index = {region: i for i, region in enumerate(sorted_regions)}
+    rankings_sorted = np.vectorize(region_to_new_index.get)(rankings)
+
+    return rankings_sorted, sorted_regions
 
 # deprecated 
 # but still in use
@@ -465,6 +447,85 @@ def extract_features_more_bands(data_MI, data_Rest, sfreq, starttime, endtime, n
     labels_Rest = np.array([0 for i in range(nTrials_Rest)])
 
     return features_MI, features_Rest, labels_MI, labels_Rest, selected_regions
+
+def compute_welch_select_regions(data_MI=None, data_Rest=None, sfreq=250, starttime=250, endtime=250, nbest_regions=8, 
+                    wpsdMI=None, wpsdRest=None, frequiMI=None, select_regions=True,
+                    kargs_welch={"fmin":2, "fmax":45,"n_per_seg":250, "n_fft":300,"n_overlap":125, "verbose":False},
+                    important_regions=[4, 5, 32, 33, 44, 45, 48, 49],):
+    """
+    Can compute spectra and / or select regions (on computed spectra or on provided spectra)
+    For the nbest_regions ROIs (where i make sure to include the important regions).
+    Selected are the regions where the max(Rest-MI) / max(Rest) has the max values.
+    ----------
+    - data_MI, data_Rest: (n_trials x n_ROIs x n_samples).
+    - sfreq: sampling frequency
+    - starttime, endtime : in secs, Segment boundaries to apply to data.
+    - min_freq_frature, max_freq_frature:
+        Frequency limits for feature extraction (where to compute mean and max)
+    - nbest_regions : Number of most informative regions to select.
+    - kargs_welch : dict, Parameters for scipy.signal.welch()
+        kargs = {"sfreq":sfreq, "fmin":fmin, "fmax":fmax,
+                "n_per_seg":n_per_seg, "n_fft":n_fft,
+                "n_overlap":n_overlap}
+    - important regions: Regions to be included for sure
+    
+    Returns
+    -------
+    - selected_regions
+    - welch spectra of the data: (n_trials x n_ROIs x n_freqs).
+    """
+    try:
+        ntotROIs = data_MI.shape[1]
+    except:
+        ntotROIs = wpsdMI.shape[1]
+    #data.shape (trials, ROIs, timepoints)
+    returned_objects = []
+
+    if wpsdMI is None:
+        # vedo se ho tutte le info che servono
+        standard_dict = {"fmin":2, "fmax":45,"n_per_seg":250, "n_fft":300,"n_overlap":125, "verbose":False}
+        for key in standard_dict.keys():
+            if key not in kargs_welch:
+                kargs_welch[key] = standard_dict[key]
+        # procedo 
+        stime = 1 * starttime
+        etime = 1 * endtime
+        kargs_welch["sfreq"]=sfreq
+        ######################## Compute Power Spectra ########################
+        wpsdMI, frequiMI = psd_array_welch(data_MI[:,:,stime:-etime], **kargs_welch )
+        wpsdRest, frequiRest = psd_array_welch(data_Rest[:,:,stime:-etime], **kargs_welch)
+        # wpsd.shape (trials, ROIs, freqs)
+        returned_objects.append(wpsdMI); returned_objects.append(wpsdRest); returned_objects.append(frequiMI); 
+
+    if select_regions:
+        ######################## Search the best regions ########################
+        # (regions where the the %difference at the freq with max difference is the highest)
+        # I choose the nregions where I have the greatest difference between MI and Rest 
+        # (but being careful to include the Interesting_regions)
+        max_diff_perc = []
+        max_rest = []
+        for roi in range(ntotROIs):
+            wpsdMI_1ROI =wpsdMI[:,roi,:]
+            wpsdRest_1ROI =wpsdRest[:,roi,:]
+            wpsd_MI_mean = wpsdMI_1ROI.mean(axis=0)
+            wpsd_Rest_mean = wpsdRest_1ROI.mean(axis=0)
+            
+            max_rest.append(np.max(wpsd_Rest_mean))
+            max_diff_perc.append(np.max(wpsd_Rest_mean-wpsd_MI_mean)/max_rest[-1])
+
+        selected_regions = [i for i in important_regions]
+        for i in range(ntotROIs):
+            if len(selected_regions) >= nbest_regions:
+                break
+            if np.argsort(max_diff_perc)[-i-1] not in selected_regions:
+                selected_regions.append(int(np.argsort(max_diff_perc)[-i-1]))
+
+        if returned_objects == []:
+            returned_objects = selected_regions
+        else:
+            returned_objects.append(selected_regions)
+    
+    return returned_objects # [wpsdMI, wpsdRest, frequiMI, selected_regions]
 
 
 """ But not used anymore
