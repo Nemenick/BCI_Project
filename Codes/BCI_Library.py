@@ -226,7 +226,7 @@ def saveresults_pickle(new_rows, inputfile=None, outputfile=None, backup=True, r
 ################################## Features extraction - selection ##################################
 
 def compute_welch(data_MI, data_Rest, sfreq=250, starttime=250, endtime=250,
-                    kargs_welch={"fmin":2, "fmax":45,"n_per_seg":250, "n_fft":300,"n_overlap":125, "verbose":False}):
+                    kargs_welch={"fmin":4, "fmax":30,"n_per_seg":250, "n_fft":300,"n_overlap":125, "verbose":False}):
     """
     Compute spectra 
     ----------
@@ -357,6 +357,9 @@ def sort_rank(rankings):
 def plot_hist2d_selected_regions_folds(df_path, subject, num_best_selected=68, plot_sorted=True, figtitle="", save_path=False):
     
     pandadizio=pd.read_pickle(df_path)
+    
+    if not plot_sorted:
+        num_best_selected=68
 
     binx = np.arange(69)-0.001
     biny = np.arange(num_best_selected+1)-0.001
@@ -364,10 +367,11 @@ def plot_hist2d_selected_regions_folds(df_path, subject, num_best_selected=68, p
     rankings = []
     for fold in range(1,len(pandadizio.keys())):
         if pandadizio.iloc[:,fold].name[:10].lower() == 'rois_fold_':
-            rankings.append(list(pandadizio.iloc[subject,fold][:num_best_selected]))
+            rankings.append(list(pandadizio.iloc[subject,fold][:]))
 
     rankings = np.array(rankings)
     n_folds = rankings.shape[0]
+    # rankings shape (n_folds,68) - shape2 (68) contains the number of the regions, sorted as best region in that fold
 
     plt.figure(figsize=(13,3.8*num_best_selected/30))
     
@@ -380,6 +384,7 @@ def plot_hist2d_selected_regions_folds(df_path, subject, num_best_selected=68, p
     
     # Sort regions by their average rank among folds
     rankings_sorted, sorted_regions =  sort_rank(rankings) if plot_sorted else (rankings, None)
+    rankings_sorted = rankings_sorted[:,:num_best_selected]
 
     # Plot
     plt.hist2d(
@@ -410,7 +415,7 @@ def plot_hist2d_selected_regions_folds(df_path, subject, num_best_selected=68, p
 # but still in use
 def extract_features_more_bands(data_MI, data_Rest, sfreq, starttime, endtime, nbest_regions,
                     min_freq_frature=[4,8,12], max_freq_frature=[8,12,30], 
-                    kargs_welch={"fmin":2, "fmax":45,"n_per_seg":250, "n_fft":300,"n_overlap":125},
+                    kargs_welch={"fmin":4, "fmax":30,"n_per_seg":250, "n_fft":300,"n_overlap":125},
                     important_regions=[4, 5, 32, 33, 44, 45, 48, 49],
                     select_mean=True, select_max=True):
     """
@@ -528,7 +533,7 @@ def extract_features_more_bands(data_MI, data_Rest, sfreq, starttime, endtime, n
 
 def compute_welch_select_regions(data_MI=None, data_Rest=None, sfreq=250, starttime=250, endtime=250, nbest_regions=8, 
                     wpsdMI=None, wpsdRest=None, frequiMI=None, select_regions=True,
-                    kargs_welch={"fmin":2, "fmax":45,"n_per_seg":250, "n_fft":300,"n_overlap":125, "verbose":False},
+                    kargs_welch={"fmin":4, "fmax":30,"n_per_seg":250, "n_fft":300,"n_overlap":125, "verbose":False},
                     important_regions=[4, 5, 32, 33, 44, 45, 48, 49],):
     """
     Can compute spectra and / or select regions (on computed spectra or on provided spectra)
@@ -609,7 +614,7 @@ def compute_welch_select_regions(data_MI=None, data_Rest=None, sfreq=250, startt
 """ But not used anymore
     def extract_features(data_MI, data_Rest, sfreq, starttime, endtime,
                         min_freq_frature, max_freq_frature, nbest_regions, 
-                        kargs_welch={"fmin":2, "fmax":45,"n_per_seg":250, "n_fft":300,"n_overlap":125},
+                        kargs_welch={"fmin":"2", "fmax":"45","n_per_seg":250, "n_fft":300,"n_overlap":125},
                         important_regions=[4, 5, 32, 33, 44, 45, 48, 49]):
         
         # Extract frequency-domain features from MI and Rest data.
