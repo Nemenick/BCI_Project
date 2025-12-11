@@ -9,7 +9,12 @@ import mne
 import pandas as pd
 import h5py
 import os
+import matplotlib.pyplot as plt
+import matplotlib
+from matplotlib.colors import ListedColormap
 
+
+################################## Random utils ######################################################
 
 def plot_brain(regions_to_color=[], atlas="aparc", printnameregions=False, brain_object_dict={}, showbrainplot=True, savepath=None, colors=[(1, 0, 0)]):
     mne.viz.set_3d_backend('pyvistaqt')  # or 'pyvistaqt'
@@ -60,6 +65,20 @@ def plot_brain(regions_to_color=[], atlas="aparc", printnameregions=False, brain
         brain.save_image(savepath)
     return brain
 
+def select_rows(dataframe, conditions):
+    """
+    Return the rows of the dataframe that match all the conditions specified in the conditions dictionary.
+    dataframe: pd.DataFrame
+    conditions: dict, where keys are column names and values are the desired values to filter on.
+    """
+    mask = pd.Series(True, index=dataframe.index)
+    for col, val in conditions.items():
+        if col not in dataframe.columns:
+            raise KeyError(f"Column '{col}' not found in DataFrame.")
+        
+        mask &= (dataframe[col] == val)
+    return dataframe[mask]
+
 def read_subject(folder, DataType, condition:str, subject_index, verbose=True):
     """
     folder          : str, path to the folder containing the .mat files 
@@ -88,6 +107,9 @@ def read_subject(folder, DataType, condition:str, subject_index, verbose=True):
     data=np.array(data)
 
     return data
+
+
+################################## Trainings ######################################################
 
 def train_models(data_features, labels, n_kfold=5, scaler=StandardScaler, 
                  method=LinearDiscriminantAnalysis, seed=647,
@@ -156,6 +178,21 @@ def saveresults_pickle(new_rows, inputfile=None, outputfile=None, backup=True, r
     If backup is True, create a backup of the inputfile before modifying it.
     """
 
+    """new_row = {
+    "ROIs": [selected_regions_EEG],
+    "NROIs":[25]
+    "DataType": ["EEG"],
+    "freqs_band": [((4,8),(8,12),(12,30))],  
+    "subject": [subject_index],
+    "Classifier": ["LDA"],
+    "Performance": [training[0]],
+    "Features": ["PowerSpectra - MeanMax band"],
+    "Comments": ["-"],
+    "Date": [today],
+    "Personalized_Freq_Range" = False,
+}
+"""
+    
     if outputfile is None:
         outputfile = inputfile
     if outputfile is None:
@@ -185,19 +222,8 @@ def saveresults_pickle(new_rows, inputfile=None, outputfile=None, backup=True, r
             new_rows.reset_index(drop=True,inplace=True)
         new_rows.to_pickle(outputfile+"new") 
 
-def select_rows(dataframe, conditions):
-    """
-    Return the rows of the dataframe that match all the conditions specified in the conditions dictionary.
-    dataframe: pd.DataFrame
-    conditions: dict, where keys are column names and values are the desired values to filter on.
-    """
-    mask = pd.Series(True, index=dataframe.index)
-    for col, val in conditions.items():
-        if col not in dataframe.columns:
-            raise KeyError(f"Column '{col}' not found in DataFrame.")
-        
-        mask &= (dataframe[col] == val)
-    return dataframe[mask]
+
+################################## Features extraction - selection ##################################
 
 def compute_welch(data_MI, data_Rest, sfreq=250, starttime=250, endtime=250,
                     kargs_welch={"fmin":2, "fmax":45,"n_per_seg":250, "n_fft":300,"n_overlap":125, "verbose":False}):
@@ -327,6 +353,58 @@ def sort_rank(rankings):
     rankings_sorted = np.vectorize(region_to_new_index.get)(rankings)
 
     return rankings_sorted, sorted_regions
+
+def plot_hist2d_selected_regions_folds(df_path, subject, num_best_selected=68, plot_sorted=True, figtitle="", save_path=False):
+    
+    pandadizio=pd.read_pickle(df_path)
+
+    binx = np.arange(69)-0.001
+    biny = np.arange(num_best_selected+1)-0.001
+
+    rankings = []
+    for fold in range(1,len(pandadizio.keys())):
+        if pandadizio.iloc[:,fold].name[:10].lower() == 'rois_fold_':
+            rankings.append(list(pandadizio.iloc[subject,fold][:num_best_selected]))
+
+    rankings = np.array(rankings)
+    n_folds = rankings.shape[0]
+
+    plt.figure(figsize=(13,3.8*num_best_selected/30))
+    
+    # Colors
+    mic = matplotlib.colormaps.get_cmap("viridis")
+    color0 = mic(0.)
+    other_colors = mic(np.linspace(0.07, 1., 1001))
+    colors = np.vstack([color0, other_colors])
+    cmap = ListedColormap(colors)
+    
+    # Sort regions by their average rank among folds
+    rankings_sorted, sorted_regions =  sort_rank(rankings) if plot_sorted else (rankings, None)
+
+    # Plot
+    plt.hist2d(
+        rankings_sorted.flatten(),
+        np.tile(np.arange(num_best_selected), (n_folds,1)).flatten(),
+        bins=(binx, biny),
+        cmap=cmap, vmin=0, vmax=len(rankings_sorted)  # ensures n_folds+1 discrete levels
+    )
+
+    coco = "C0"
+    plt.vlines(binx,0,num_best_selected,alpha=0.75,color=coco)
+    plt.hlines(biny,0,68,alpha=0.75,color=coco)
+
+    plt.colorbar(label="how many times a region has a specific rank")
+    plt.xlabel("Region")
+    plt.ylabel("Rank")
+    plt.title(figtitle)
+    if plot_sorted:
+        plt.plot([0,68],[0,68],color="red",linestyle="--",alpha=0.7)
+    
+    if save_path:
+        plt.savefig(save_path)
+    
+    if plot_sorted:
+        return rankings_sorted, sorted_regions
 
 # deprecated 
 # but still in use
