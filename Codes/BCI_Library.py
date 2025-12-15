@@ -245,7 +245,7 @@ def compute_welch(data_MI, data_Rest, sfreq=250, starttime=250, endtime=250,
     returned_objects = []
 
     # vedo se ho tutte le info che servono
-    standard_dict = {"fmin":2, "fmax":45,"n_per_seg":250, "n_fft":300,"n_overlap":125, "verbose":False}
+    standard_dict = {"fmin":4, "fmax":30,"n_per_seg":250, "n_fft":300,"n_overlap":125, "verbose":False}
     for key in standard_dict.keys():
         if key not in kargs_welch:
             kargs_welch[key] = standard_dict[key]
@@ -457,7 +457,7 @@ def extract_features_more_bands(data_MI, data_Rest, sfreq, starttime, endtime, n
     #data.shape (trials, ROIs, timepoints)
 
     # vedo se ho tutte le info che servono
-    standard_dict = {"fmin":2, "fmax":45,"n_per_seg":250, "n_fft":300,"n_overlap":125, "verbose":False}
+    standard_dict = {"fmin":4, "fmax":30,"n_per_seg":250, "n_fft":300,"n_overlap":125, "verbose":False}
     for key in standard_dict.keys():
         if key not in kargs_welch:
             kargs_welch[key] = standard_dict[key]
@@ -566,7 +566,7 @@ def compute_welch_select_regions(data_MI=None, data_Rest=None, sfreq=250, startt
 
     if wpsdMI is None:
         # vedo se ho tutte le info che servono
-        standard_dict = {"fmin":2, "fmax":45,"n_per_seg":250, "n_fft":300,"n_overlap":125, "verbose":False}
+        standard_dict = {"fmin":4, "fmax":30,"n_per_seg":250, "n_fft":300,"n_overlap":125, "verbose":False}
         for key in standard_dict.keys():
             if key not in kargs_welch:
                 kargs_welch[key] = standard_dict[key]
