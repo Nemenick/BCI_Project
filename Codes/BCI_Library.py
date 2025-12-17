@@ -112,7 +112,7 @@ def read_subject(folder, DataType, condition:str, subject_index, verbose=True):
 ################################## Trainings ######################################################
 
 def train_models(data_features, labels, n_kfold=5, scaler=StandardScaler, 
-                 method=LinearDiscriminantAnalysis, seed=647,
+                 method=LinearDiscriminantAnalysis, seed=224,
                  verbose=False):
     
     kf = StratifiedKFold(
@@ -167,6 +167,41 @@ def train_models(data_features, labels, n_kfold=5, scaler=StandardScaler,
         print("Mean accuracy:", np.mean(fold_accuracies))
         print("Std accuracy:", np.std(fold_accuracies))
     return fold_accuracies, fold_confusions, trained_models,val_indexes
+
+
+def train_single_model(data_features, labels, train_idx, val_idx, scaler=StandardScaler, 
+                 method=LinearDiscriminantAnalysis, seed=224,
+                 verbose=False):
+    
+    X_train, X_val = data_features[train_idx], data_features[val_idx]
+    y_train, y_val = labels[train_idx], labels[val_idx]
+    
+    # StandardScaler:
+    scaler_instance = scaler()
+    X_train_scaled = scaler_instance.fit_transform(X_train)
+    X_val_scaled   = scaler_instance.transform(X_val)
+
+    # Model instance
+    try:
+        model = method(random_state=seed)
+    except:
+        try:
+            model = method()
+        except:
+            model = method
+
+    model.fit(X_train_scaled, y_train)
+    
+    y_pred = model.predict(X_val_scaled)
+    # Accuracy   # Confusion matrix
+    acc = accuracy_score(y_val, y_pred)
+    confusion_mat = confusion_matrix(y_val, y_pred)
+
+    if verbose:
+        print(confusion_mat)
+
+    return acc, confusion_mat, model
+
 
 def saveresults_pickle(new_rows, inputfile=None, outputfile=None, backup=True, resetindex=True):
     # filepath "/Users/giovanni.messuti/Desktop/BCI_Project/Results/BCI_Performances.pkl"
@@ -225,6 +260,28 @@ def saveresults_pickle(new_rows, inputfile=None, outputfile=None, backup=True, r
 
 ################################## Features extraction - selection ##################################
 
+def cohens_d_per_columm(X, Y):
+    """
+    Compute Cohen's d - effect size - at each column between two sets of series.
+    X,Y : ndarray, shape (n_samples, columns)
+    Returns -------
+    d_max : float Maximum absolute Cohen's d across timepoints
+    """
+
+    mean_X = X.mean(axis=0)
+    mean_Y = Y.mean(axis=0)
+
+    var_X = X.var(axis=0, ddof=1)
+    var_Y = Y.var(axis=0, ddof=1)
+
+    pooled_std = np.sqrt((var_X + var_Y) / 2)
+    pooled_std[pooled_std == 0] = np.nan
+    # d_t : ndarray, shape (columns,) Cohen's d at each column
+    d_t = (mean_X - mean_Y) / pooled_std
+    d_max = np.nanmax(np.abs(d_t))
+
+    return d_max
+
 def compute_welch(data_MI, data_Rest, sfreq=250, starttime=250, endtime=250,
                     kargs_welch={"fmin":4, "fmax":30,"n_per_seg":250, "n_fft":300,"n_overlap":125, "verbose":False}):
     """
@@ -262,9 +319,84 @@ def compute_welch(data_MI, data_Rest, sfreq=250, starttime=250, endtime=250,
 
     return returned_objects # [wpsdMI, wpsdRest, frequiMI]
         
+def select_regions_MyCriteria(wpsdMI, wpsdRest,
+                    nbest_regions=8, 
+                    important_regions=[4, 5, 32, 33, 44, 45, 48, 49]):
+    """
+    Select regions (on provided spectra)
+    wpsdMI.shape = (trials, ROIs, frequency_bins)
+    For the nbest_regions ROIs (where i make sure to include the important regions).
+    Selected are the regions where the max(Rest-MI) / max(Rest) has the max values.
+    ----------
+
+    - nbest_regions : Number of most informative regions to select.
+    - important regions: Regions to be included for sure
+    
+    Returns - selected_regions: Array
+    """
+    ######################## Search the best regions ########################
+    # (regions where the the %difference at the freq with max difference is the highest)
+    # I choose the nregions where I have the greatest difference between MI and Rest 
+    # (but being careful to include the Interesting_regions)
+    ntotROIs = wpsdMI.shape[1]
+    max_diff_perc = []
+    max_rest = []
+    for roi in range(ntotROIs):
+        wpsdMI_1ROI =wpsdMI[:,roi,:]
+        wpsdRest_1ROI =wpsdRest[:,roi,:]
+        wpsd_MI_mean = wpsdMI_1ROI.mean(axis=0)
+        wpsd_Rest_mean = wpsdRest_1ROI.mean(axis=0)
+        
+        max_rest.append(np.max(wpsd_Rest_mean))
+        max_diff_perc.append(np.max(wpsd_Rest_mean-wpsd_MI_mean)/max_rest[-1])
+
+    selected_regions = [i for i in important_regions]
+    for i in range(ntotROIs):
+        if len(selected_regions) >= nbest_regions:
+            break
+        if np.argsort(max_diff_perc)[-i-1] not in selected_regions:
+            selected_regions.append(int(np.argsort(max_diff_perc)[-i-1]))
+
+    return selected_regions
+
+def select_regions_Cohen_effect_size(wpsdMI, wpsdRest,
+                    nbest_regions=8, 
+                    important_regions=[4, 5, 32, 33, 44, 45, 48, 49]):
+    """
+    Select regions (on provided spectra)
+    wpsdMI.shape = (trials, ROIs, frequency_bins)
+    For the nbest_regions ROIs (where i make sure to include the important regions).
+    Selected are the regions where the (Rest-MI)/(pooled std) has the max values.
+    ----------
+    - nbest_regions : Number of most informative regions to select.
+    - important regions: Regions to be included for sure
+    ----------
+    Returns - selected_regions: Array
+    """
+    ntotROIs = wpsdMI.shape[1]
+    cohen_maxs = []
+
+    for roi in range(ntotROIs):
+        wpsdMI_1ROI =wpsdMI[:,roi,:]
+        wpsdRest_1ROI =wpsdRest[:,roi,:]
+
+        cohen_maxs.append(cohens_d_per_columm(wpsdMI_1ROI,wpsdRest_1ROI))
+    ordine_cohen = np.argsort(cohen_maxs)
+    selected_regions = [i for i in important_regions]
+    effect_sizes = [ cohen_maxs[_] for _ in important_regions]
+    for i in range(ntotROIs):
+        if len(selected_regions) >= nbest_regions:
+            break
+        if ordine_cohen[-i-1] not in selected_regions:
+            selected_regions.append(int(ordine_cohen[-i-1]))
+            effect_sizes.append(cohen_maxs[ordine_cohen[-i-1]])
+
+    return selected_regions, effect_sizes
+
 def extract_features_from_spectra_more_bands(wpsdMI, wpsdRest, selected_regions, frequiMI,
                     min_freq_frature=[4,8,12], max_freq_frature=[8,12,30], 
-                    select_mean=True, select_max=True):
+                    select_mean=True, select_max=True,
+                    reshape_features=True):
     """
     Extract frequency-domain features from MI and Rest spectra of data.
     Features are the mean and max in a fixed window of freqs (min_freq_frature, max_freq_frature)
@@ -316,10 +448,11 @@ def extract_features_from_spectra_more_bands(wpsdMI, wpsdRest, selected_regions,
     
     features_MI = np.concatenate(features_MI,axis=-1)
     features_Rest = np.concatenate(features_Rest,axis=-1)
-    # features_MI.shape (Trials, selected_ROIs,6)
-
-    features_MI = features_MI.reshape(nTrials_MI,-1)
-    features_Rest = features_Rest.reshape(nTrials_Rest,-1)
+    # features_MI.shape (Trials, selected_ROIs,len(min_freq_feature*2))
+    
+    if reshape_features:
+        features_MI = features_MI.reshape(nTrials_MI,-1)
+        features_Rest = features_Rest.reshape(nTrials_Rest,-1)
 
     labels_MI = np.array([1 for _ in range(nTrials_MI)])
     labels_Rest = np.array([0 for _ in range(nTrials_Rest)])
@@ -410,6 +543,13 @@ def plot_hist2d_selected_regions_folds(df_path, subject, num_best_selected=68, p
     
     if plot_sorted:
         return rankings_sorted, sorted_regions
+
+
+
+
+
+
+
 
 # deprecated 
 # but still in use
