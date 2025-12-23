@@ -108,6 +108,17 @@ def read_subject(folder, DataType, condition:str, subject_index, verbose=True):
 
     return data
 
+def read_ranks_subect_on_folds(df_path, subject):
+    """df_path:
+    Subject, rois_fold_1 (regions sorted by rank in dold 1), P-value (or effect size) (optional), fold_2, fold_3...
+    """
+    pandadizio=pd.read_pickle(df_path)
+    rankings = []
+    for fold in range(1,len(pandadizio.keys())):
+        if pandadizio.iloc[:,fold].name[:10].lower() == 'rois_fold_':
+            rankings.append(list(pandadizio.iloc[subject,fold][:]))
+    return np.array(rankings)
+
 
 ################################## Trainings ######################################################
 
@@ -260,7 +271,11 @@ def saveresults_pickle(new_rows, inputfile=None, outputfile=None, backup=True, r
 
 ################################## Features extraction - selection ##################################
 
-def cohens_d_per_columm(X, Y):
+#pingouin.compute_effsize(x, y, paired=True, eftype='cohen')
+
+
+
+def cohens_d_per_columm(X, Y, return_all=False):
     """
     Compute Cohen's d - effect size - at each column between two sets of series.
     X,Y : ndarray, shape (n_samples, columns)
@@ -280,7 +295,10 @@ def cohens_d_per_columm(X, Y):
     d_t = (mean_X - mean_Y) / pooled_std
     d_max = np.nanmax(np.abs(d_t))
 
-    return d_max
+    if return_all:
+        return d_t
+    else:
+        return d_max
 
 def compute_welch(data_MI, data_Rest, sfreq=250, starttime=250, endtime=250,
                     kargs_welch={"fmin":4, "fmax":30,"n_per_seg":250, "n_fft":300,"n_overlap":125, "verbose":False}):
@@ -469,7 +487,7 @@ def sort_rank(rankings):
     rankings: numpy array (folds, region sorted based on their rank)
     return:
     rankings_sorted: numpy array (folds, renamed region sorted based on their rank)
-    sorted_regions: correspondence between old numbers of the reion and new ones
+    sorted_regions: correspondence between old numbers of the reion and new ones: regions sorted on mean rank among folds
     """
 
     unique_regions = np.unique(rankings)
@@ -489,7 +507,6 @@ def sort_rank(rankings):
 
 def plot_hist2d_selected_regions_folds(df_path, subject, num_best_selected=68, plot_sorted=True, figtitle="", save_path=False):
     
-    pandadizio=pd.read_pickle(df_path)
     
     if not plot_sorted:
         num_best_selected=68
@@ -497,12 +514,8 @@ def plot_hist2d_selected_regions_folds(df_path, subject, num_best_selected=68, p
     binx = np.arange(69)-0.001
     biny = np.arange(num_best_selected+1)-0.001
 
-    rankings = []
-    for fold in range(1,len(pandadizio.keys())):
-        if pandadizio.iloc[:,fold].name[:10].lower() == 'rois_fold_':
-            rankings.append(list(pandadizio.iloc[subject,fold][:]))
+    rankings = read_ranks_subect_on_folds(df_path, subject)
 
-    rankings = np.array(rankings)
     n_folds = rankings.shape[0]
     # rankings shape (n_folds,68) - shape2 (68) contains the number of the regions, sorted as best region in that fold
 
@@ -543,9 +556,6 @@ def plot_hist2d_selected_regions_folds(df_path, subject, num_best_selected=68, p
     
     if plot_sorted:
         return rankings_sorted, sorted_regions
-
-
-
 
 
 
