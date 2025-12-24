@@ -109,8 +109,10 @@ def read_subject(folder, DataType, condition:str, subject_index, verbose=True):
     return data
 
 def read_ranks_subect_on_folds(df_path, subject):
-    """df_path:
+    """df of df_path:
     Subject, rois_fold_1 (regions sorted by rank in dold 1), P-value (or effect size) (optional), fold_2, fold_3...
+    
+    reads the ranks of that subject among folds from a saved dataframe
     """
     pandadizio=pd.read_pickle(df_path)
     rankings = []
@@ -179,7 +181,6 @@ def train_models(data_features, labels, n_kfold=5, scaler=StandardScaler,
         print("Std accuracy:", np.std(fold_accuracies))
     return fold_accuracies, fold_confusions, trained_models,val_indexes
 
-
 def train_single_model(data_features, labels, train_idx, val_idx, scaler=StandardScaler, 
                  method=LinearDiscriminantAnalysis, seed=224,
                  verbose=False):
@@ -213,9 +214,8 @@ def train_single_model(data_features, labels, train_idx, val_idx, scaler=Standar
 
     return acc, confusion_mat, model
 
-
 def saveresults_pickle(new_rows, inputfile=None, outputfile=None, backup=True, resetindex=True):
-    # filepath "/Users/giovanni.messuti/Desktop/BCI_Project/Results/BCI_Performances.pkl"
+    # filepath "../Results/BCI_Performances.pkl"
     """
     if inputfile is a valid pickle file, read it and append the new_rows to it.
     If not, create a new pickle file with new_rows.
@@ -271,16 +271,14 @@ def saveresults_pickle(new_rows, inputfile=None, outputfile=None, backup=True, r
 
 ################################## Features extraction - selection ##################################
 
-#pingouin.compute_effsize(x, y, paired=True, eftype='cohen')
-
-
-
 def cohens_d_per_columm(X, Y, return_all=False):
     """
     Compute Cohen's d - effect size - at each column between two sets of series.
     X,Y : ndarray, shape (n_samples, columns)
     Returns -------
     d_max : float Maximum absolute Cohen's d across timepoints
+
+    verified: same as pingouin.compute_effsize(x, y, paired=True, eftype='cohen')
     """
 
     mean_X = X.mean(axis=0)
@@ -557,9 +555,49 @@ def plot_hist2d_selected_regions_folds(df_path, subject, num_best_selected=68, p
     if plot_sorted:
         return rankings_sorted, sorted_regions
 
+################################## Test -  feature selection ##################################
+def select_regions_MyCriteria2(wpsdMI, wpsdRest,
+                    nbest_regions=8, 
+                    important_regions=[4, 5, 32, 33, 44, 45, 48, 49]):
+    """
+    NORMALIZING with respect to the rest in the same bin where I found max(MI-Re),
+    not normalizing respect to the max of rest among all the bins
 
+    Select regions (on provided spectra)
+    wpsdMI.shape = (trials, ROIs, frequency_bins)
+    For the nbest_regions ROIs (where i make sure to include the important regions).
+    Selected are the regions where the max(Rest-MI) / max(Rest) has the max values.
+    ----------
 
+    - nbest_regions : Number of most informative regions to select.
+    - important regions: Regions to be included for sure
+    
+    Returns - selected_regions: Array
+    """
+    ######################## Search the best regions ########################
+    # (regions where the the %difference at the freq with max difference is the highest)
+    # I choose the nregions where I have the greatest difference between MI and Rest 
+    # (but being careful to include the Interesting_regions)
+    ntotROIs = wpsdMI.shape[1]
+    max_diff_perc = []
+    max_rest = []
+    for roi in range(ntotROIs):
+        wpsdMI_1ROI =wpsdMI[:,roi,:]
+        wpsdRest_1ROI =wpsdRest[:,roi,:]
+        wpsd_MI_mean = wpsdMI_1ROI.mean(axis=0)
+        wpsd_Rest_mean = wpsdRest_1ROI.mean(axis=0)
+        
+        max_rest.append(np.max(wpsd_Rest_mean))
+        max_diff_perc.append(np.max(wpsd_Rest_mean-wpsd_MI_mean)/max_rest[-1])
 
+    selected_regions = [i for i in important_regions]
+    for i in range(ntotROIs):
+        if len(selected_regions) >= nbest_regions:
+            break
+        if np.argsort(max_diff_perc)[-i-1] not in selected_regions:
+            selected_regions.append(int(np.argsort(max_diff_perc)[-i-1]))
+
+    return selected_regions
 
 # deprecated 
 # but still in use
