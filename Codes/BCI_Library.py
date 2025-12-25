@@ -580,15 +580,15 @@ def select_regions_MyCriteria2(wpsdMI, wpsdRest,
     # (but being careful to include the Interesting_regions)
     ntotROIs = wpsdMI.shape[1]
     max_diff_perc = []
-    max_rest = []
     for roi in range(ntotROIs):
         wpsdMI_1ROI =wpsdMI[:,roi,:]
         wpsdRest_1ROI =wpsdRest[:,roi,:]
         wpsd_MI_mean = wpsdMI_1ROI.mean(axis=0)
         wpsd_Rest_mean = wpsdRest_1ROI.mean(axis=0)
         
-        max_rest.append(np.max(wpsd_Rest_mean))
-        max_diff_perc.append(np.max(wpsd_Rest_mean-wpsd_MI_mean)/max_rest[-1])
+        diff = wpsd_Rest_mean - wpsd_MI_mean
+        idx_max = np.argmax(diff)  # indice del massimo
+        max_diff_perc.append(diff[idx_max] / wpsd_Rest_mean[idx_max])
 
     selected_regions = [i for i in important_regions]
     for i in range(ntotROIs):
