@@ -121,6 +121,84 @@ def read_ranks_subect_on_folds(df_path, subject):
             rankings.append(list(pandadizio.iloc[subject,fold][:]))
     return np.array(rankings)
 
+def plot_violin_all_subj(Dataframe_performances,  num_settings_showed,  dict_fixed_selection,  dict_per_setting,
+                  x_ticklabels,  textes,  textes_x_positions,
+                  divisioni  ,hlines_positions=[],
+                  track_subjects=True,  savepath=False):
+    """
+    divisioni: [0,3,6,9] - dove andrò a mettere le vlines e dove farò il track dei soggetti (linee tratteggiate tra i diversi violin)
+    """
+    chaanche_lvl = 0.58 # https://pubmed.ncbi.nlm.nih.gov/25596422/
+    hlines_positions = hlines_positions + [chaanche_lvl]
+    PerData = Dataframe_performances
+    vlines_positions=[divisioni[_]-0.5 for _ in range(1,len(divisioni)-1)]
+    fig, ax = plt.subplots(1, 1, figsize=(8, 5))
+
+    nps = num_settings_showed
+    x_positions = np.arange(nps)
+
+    styles=["--","solid"]
+    markes=["s","o"]
+    size=20
+
+    all_perfs = []
+    for subject in range(20):
+
+        perfs_per_subject = []
+        for setting in range(nps):
+            # Extract performances
+            tmp_dict = {"subject":subject}
+            for key in dict_per_setting:
+                tmp_dict[key] = dict_per_setting[key][setting]
+            rows = select_rows(PerData, dict_fixed_selection | tmp_dict)
+            perfs_per_subject.append(np.array(list(rows["Performance"].values)).mean())
+        all_perfs.append(perfs_per_subject)
+        shifcolor=1 if subject>=10 else 0
+        color=f"C{subject+shifcolor}"
+
+        ax.scatter(x_positions, perfs_per_subject, marker=markes[subject//10],s=size,color=color)#facecolors='none',edgecolors=color
+
+        for __ in range(len(divisioni)-1):
+            if not track_subjects: break
+            ax.plot(x_positions[divisioni[__]:divisioni[__+1]], perfs_per_subject[divisioni[__]:divisioni[__+1]], linestyle=styles[subject//10], linewidth=0.7,color=color)
+
+        
+    all_perfs = np.array(all_perfs)   # shape (20 subjects, 9 settings)
+
+    #Violin plot
+    ax_violin = ax
+    violins = ax_violin.violinplot(
+        all_perfs,
+        positions=x_positions,
+        showmeans=False,
+        showmedians=True,
+        widths=0.8,
+    )
+
+    for part in violins['bodies']+[violins['cbars']]:
+        part.set_zorder(-20)
+    xlims = ax.get_xlim()
+    ax_violin.set_ylabel("Performance")
+    ax.hlines(hlines_positions, -1, 12, colors='grey', linestyles='dashed', label="Chance Level",zorder=-1, alpha=0.7)
+    ax.set_xticks(x_positions)
+    ax.set_xticklabels(x_ticklabels)
+    ax.vlines(vlines_positions, 0.5, 1, colors='gray', linestyles='dashed')
+    ax.set_ylim(0.5, 1)
+    for __ in range(len(textes)):
+        ax.text(textes_x_positions[__], 0.1, textes[__], transform=ax.transAxes, fontsize=12, verticalalignment='top',horizontalalignment='center')
+
+    ax.text(1., 0.192, f"Chance level  ", transform=ax.transAxes, fontsize=9, verticalalignment='top',horizontalalignment='right')
+    title = f"Distribution of Performance Across Subjects for Each Setting\n"
+    for key,value in dict_fixed_selection.items():
+        title+= f"{key}:{value} | "
+    title=title[:-2]
+    ax.set_title(title, fontsize=13)
+    ax.set_xlim(xlims)
+    plt.tight_layout()
+    if savepath:
+        plt.savefig(savepath,dpi=300)
+    plt.show()
+    
 
 ################################## Trainings ######################################################
 
