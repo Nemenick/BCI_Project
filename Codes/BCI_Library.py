@@ -123,7 +123,7 @@ def read_ranks_subect_on_folds(df_path, subject):
 
 def plot_violin_all_subj(Dataframe_performances,  num_settings_showed,  dict_fixed_selection,  dict_per_setting,
                   x_ticklabels,  textes,  textes_x_positions,
-                  divisioni  ,hlines_positions=[],
+                  divisioni, xlabel="", hlines_positions=[],
                   track_subjects=True,  savepath=False):
     """
     divisioni: [0,3,6,9] - dove andrò a mettere le vlines e dove farò il track dei soggetti (linee tratteggiate tra i diversi violin)
@@ -179,6 +179,7 @@ def plot_violin_all_subj(Dataframe_performances,  num_settings_showed,  dict_fix
         part.set_zorder(-20)
     xlims = ax.get_xlim()
     ax_violin.set_ylabel("Performance")
+    ax_violin.set_xlabel(xlabel)
     ax.hlines(hlines_positions, -1, 12, colors='grey', linestyles='dashed', label="Chance Level",zorder=-1, alpha=0.7)
     ax.set_xticks(x_positions)
     ax.set_xticklabels(x_ticklabels)
@@ -199,6 +200,91 @@ def plot_violin_all_subj(Dataframe_performances,  num_settings_showed,  dict_fix
         plt.savefig(savepath,dpi=300)
     plt.show()
     
+def plot_violin_track_single_fold(PerformanceData,num_settings_showed_per_subject,
+                                 dict_fixed_selection,dict_per_setting,
+                                 x_ticklabels,hlines_positions = [], savepath=False):
+    size = 20
+    chance_lvl = 0.58 # https://pubmed.ncbi.nlm.nih.gov/25596422/
+    hlines_positions = hlines_positions + [chance_lvl]
+    x_positions = np.arange(num_settings_showed_per_subject)
+
+    num_subjects = 20
+    n_rows = 5
+    n_cols = 4
+
+    fig, axes = plt.subplots(
+        n_rows, n_cols,
+        figsize=(20, 16),
+        sharex=True,
+        sharey=True
+    ); axes = axes.flatten()
+
+    # ==========================
+    # LOOP OVER SUBJECTS
+    for subject in range(num_subjects):
+        ax = axes[subject]
+        perfs_subject = []
+        for setting in range(num_settings_showed_per_subject):
+            tmp_dict = {"subject": subject}
+            for key in dict_per_setting:
+                tmp_dict[key] = dict_per_setting[key][setting]
+
+            rows = select_rows(PerformanceData, dict_fixed_selection | tmp_dict)
+            perfs_subject.append(
+                np.array(list(rows["Performance"].values))
+            )
+
+        perfs_subject = np.array(perfs_subject)
+
+        # ----------------------
+        # Violin plot
+        # ----------------------
+        perfs_subjectbp = [np.asarray(p).ravel() for p in perfs_subject]
+
+        vp = ax.violinplot(
+            perfs_subjectbp,
+            positions=x_positions,
+            widths=0.5,
+            showmeans=True
+        )
+
+        for body in vp['bodies']: 
+            body.set_facecolor("lightgray")
+            body.set_edgecolor("black") 
+            body.set_alpha(0.6)
+
+        x_scatter = np.repeat(x_positions, perfs_subject.shape[1])
+        y_scatter = perfs_subject.flatten()
+        x_scatter= np.repeat(x_scatter, perfs_subject.shape[-1])
+        ax.scatter( x_scatter, y_scatter, s=size, alpha=0.7, zorder=10, color="red")
+        xmin, xmax = ax.get_xlim()
+        # CHANCE LEVEL
+        ax.hlines(hlines_positions, xmin, xmax, colors="gray", linestyles="dashed", alpha=0.7)
+        ax.set_title(f"Subject {subject}", fontsize=10)
+
+    # ==========================
+    # AXIS FORMATTING
+    for ax in axes[-n_cols:]:
+        ax.set_xticks(x_positions)
+        ax.set_xticklabels(x_ticklabels)
+    for ax in axes[::n_cols]:
+        ax.set_ylabel("Performance")
+    axes[0].set_ylim(0.5, 1.05);  ax.set_xlim(-0.4, 2.4)
+    # Remove unused axes if any
+    for ax in axes[num_subjects:]:
+        ax.axis("off")
+    # ==========================
+    # GLOBAL TITLE
+    title = "Performance Distribution per Subject (Boxplots)\n"
+    for k, v in dict_fixed_selection.items():
+        title += f"{k}:{v} | "
+
+    fig.suptitle(title[:-2], fontsize=16)
+    plt.tight_layout(rect=[0, 0, 1, 0.96])
+    if savepath:
+        plt.savefig(savepath,dpi=300)
+    plt.show()
+
 
 ################################## Trainings ######################################################
 
