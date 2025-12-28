@@ -435,7 +435,7 @@ def saveresults_pickle(new_rows, inputfile=None, outputfile=None, backup=True, r
 
 ################################## Features extraction - selection ##################################
 
-def cohens_d_per_columm(X, Y, return_all=False):
+def cohens_d_per_columm(X_MI, X_Re, return_all=False):
     """
     Compute Cohen's d - effect size - at each column between two sets of series.
     X,Y : ndarray, shape (n_samples, columns)
@@ -445,17 +445,17 @@ def cohens_d_per_columm(X, Y, return_all=False):
     verified: same as pingouin.compute_effsize(x, y, paired=True, eftype='cohen')
     """
 
-    mean_X = X.mean(axis=0)
-    mean_Y = Y.mean(axis=0)
+    mean_X_MI = X_MI.mean(axis=0)
+    mean_X_Re = X_Re.mean(axis=0)
 
-    var_X = X.var(axis=0, ddof=1)
-    var_Y = Y.var(axis=0, ddof=1)
+    var_X_MI = X_MI.var(axis=0, ddof=1)
+    var_X_Re = X_Re.var(axis=0, ddof=1)
 
-    pooled_std = np.sqrt((var_X + var_Y) / 2)
+    pooled_std = np.sqrt((var_X_Re + var_X_MI) / 2)
     pooled_std[pooled_std == 0] = np.nan
     # d_t : ndarray, shape (columns,) Cohen's d at each column
-    d_t = (mean_X - mean_Y) / pooled_std
-    d_max = np.nanmax(np.abs(d_t))
+    d_t = (mean_X_Re - mean_X_MI) / pooled_std
+    d_max = np.nanmax(d_t)
 
     if return_all:
         return d_t
@@ -559,7 +559,8 @@ def select_regions_Cohen_effect_size(wpsdMI, wpsdRest,
     for roi in range(ntotROIs):
         wpsdMI_1ROI =wpsdMI[:,roi,:]
         wpsdRest_1ROI =wpsdRest[:,roi,:]
-
+        # Correct order is Motor-Imagery, Rest
+        # I have to pick the max of MI-Re, not the opposite
         cohen_maxs.append(cohens_d_per_columm(wpsdMI_1ROI,wpsdRest_1ROI))
     ordine_cohen = np.argsort(cohen_maxs)
     selected_regions = [i for i in important_regions]
