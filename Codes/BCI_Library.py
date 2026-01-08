@@ -13,6 +13,9 @@ import matplotlib.pyplot as plt
 import matplotlib
 from matplotlib.colors import ListedColormap
 
+# Important_regions_right =   [5, 33, 45, 49]
+# Important_regions_left =   [4, 32, 44, 48]
+
 
 ################################## Random utils ######################################################
 
@@ -108,16 +111,22 @@ def read_subject(folder, DataType, condition:str, subject_index, verbose=True):
 
     return data
 
-def read_ranks_subect_on_folds(df_path, subject):
-    """df of df_path:
+def read_ranks_subect(df_path, subject, read_global=False):
+    """
+    -   df of df_path structure:
     Subject, rois_fold_1 (regions sorted by rank in dold 1), P-value (or effect size) (optional), fold_2, fold_3...
+    -   subject: index of the subject to be read
+    -   read_global: If read not a fold, the column "ROIs_global", containing the selection made on all the data, not dividing by folds 
     
     reads the ranks of that subject among folds from a saved dataframe
     """
+
+    piccolo = "rois_fold_" if read_global == False else "rois_globa"
+
     pandadizio=pd.read_pickle(df_path)
     rankings = []
     for fold in range(1,len(pandadizio.keys())):
-        if pandadizio.iloc[:,fold].name[:10].lower() == 'rois_fold_':
+        if pandadizio.iloc[:,fold].name[:10].lower() == piccolo:
             rankings.append(list(pandadizio.iloc[subject,fold][:]))
     return np.array(rankings)
 
@@ -541,7 +550,7 @@ def select_regions_MyCriteria(wpsdMI, wpsdRest,
 
 def select_regions_Cohen_effect_size(wpsdMI, wpsdRest,
                     nbest_regions=8, 
-                    important_regions=[4, 5, 32, 33, 44, 45, 48, 49]):
+                    important_regions=[]):
     """
     Select regions (on provided spectra)
     wpsdMI.shape = (trials, ROIs, frequency_bins)
@@ -677,7 +686,7 @@ def plot_hist2d_selected_regions_folds(df_path, subject, num_best_selected=68, p
     binx = np.arange(69)-0.001
     biny = np.arange(num_best_selected+1)-0.001
 
-    rankings = read_ranks_subect_on_folds(df_path, subject)
+    rankings = read_ranks_subect(df_path, subject)
 
     n_folds = rankings.shape[0]
     # rankings shape (n_folds,68) - shape2 (68) contains the number of the regions, sorted as best region in that fold
