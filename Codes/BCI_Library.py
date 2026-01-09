@@ -68,7 +68,7 @@ def plot_brain(regions_to_color=[], atlas="aparc", printnameregions=False, brain
         brain.save_image(savepath)
     return brain
 
-def select_rows(dataframe, conditions):
+def select_rows(dataframe, conditions:dict):
     """
     Return the rows of the dataframe that match all the conditions specified in the conditions dictionary.
     dataframe: pd.DataFrame
@@ -111,17 +111,17 @@ def read_subject(folder, DataType, condition:str, subject_index, verbose=True):
 
     return data
 
-def read_ranks_subect(df_path, subject, read_global=False):
+def read_ranks_subect(df_path, subject, read_all_trials=False):
     """
     -   df of df_path structure:
     Subject, rois_fold_1 (regions sorted by rank in dold 1), P-value (or effect size) (optional), fold_2, fold_3...
     -   subject: index of the subject to be read
-    -   read_global: If read not a fold, the column "ROIs_global", containing the selection made on all the data, not dividing by folds 
+    -   read_all_trials: If read not a fold, the column "ROIs_All_trials", containing the selection made on all the data, not dividing by folds 
     
     reads the ranks of that subject among folds from a saved dataframe
     """
 
-    piccolo = "rois_fold_" if read_global == False else "rois_globa"
+    piccolo = "rois_fold_" if read_all_trials == False else "rois_all_t"
 
     pandadizio=pd.read_pickle(df_path)
     rankings = []
@@ -133,7 +133,7 @@ def read_ranks_subect(df_path, subject, read_global=False):
 def plot_violin_all_subj(Dataframe_performances,  num_settings_showed,  dict_fixed_selection,  dict_per_setting,
                   x_ticklabels,  textes,  textes_x_positions,
                   divisioni, xlabel="", hlines_positions=[],
-                  track_subjects=True,  savepath=False):
+                  track_subjects=True,  savepath=False, figsize=(8,5), additional_title=""):
     """
     divisioni: [0,3,6,9] - dove andrò a mettere le vlines e dove farò il track dei soggetti (linee tratteggiate tra i diversi violin)
     """
@@ -141,7 +141,7 @@ def plot_violin_all_subj(Dataframe_performances,  num_settings_showed,  dict_fix
     hlines_positions = hlines_positions + [chaanche_lvl]
     PerData = Dataframe_performances
     vlines_positions=[divisioni[_]-0.5 for _ in range(1,len(divisioni)-1)]
-    fig, ax = plt.subplots(1, 1, figsize=(8, 5))
+    fig, ax = plt.subplots(1, 1, figsize=figsize)
 
     nps = num_settings_showed
     x_positions = np.arange(nps)
@@ -189,7 +189,7 @@ def plot_violin_all_subj(Dataframe_performances,  num_settings_showed,  dict_fix
     xlims = ax.get_xlim()
     ax_violin.set_ylabel("Performance")
     ax_violin.set_xlabel(xlabel)
-    ax.hlines(hlines_positions, -1, 12, colors='grey', linestyles='dashed', label="Chance Level",zorder=-1, alpha=0.7)
+    ax.hlines(hlines_positions, -1, num_settings_showed, colors='grey', linestyles='dashed', label="Chance Level",zorder=-1, alpha=0.7)
     ax.set_xticks(x_positions)
     ax.set_xticklabels(x_ticklabels)
     ax.vlines(vlines_positions, 0.5, 1, colors='gray', linestyles='dashed')
@@ -202,6 +202,7 @@ def plot_violin_all_subj(Dataframe_performances,  num_settings_showed,  dict_fix
     for key,value in dict_fixed_selection.items():
         title+= f"{key}:{value} | "
     title=title[:-2]
+    title += additional_title
     ax.set_title(title, fontsize=13)
     ax.set_xlim(xlims)
     plt.tight_layout()
@@ -582,6 +583,33 @@ def select_regions_Cohen_effect_size(wpsdMI, wpsdRest,
             effect_sizes.append(cohen_maxs[ordine_cohen[-i-1]])
 
     return selected_regions, effect_sizes
+
+def global_selection(selection_method:str,DataType:str, fino_a = 15, filepath = "../Results/RegionSelection/Selected_regions"):
+    """
+    Once I have the selections for each subject (on all data, not dividing by folds)
+    I perform the GLOBAL selection of the regions that are the best in general for all subjects
+
+    selection_method: "MyCriteria" or "Cohen_effect_size"
+    DataType: "EEG" or "MEG"
+    fino_a : select among the "fino_a" best rois for each subject
+    filepath: file with a col "ROIs_All_trials"
+
+    """
+    soglias_cohen = {"EEG":{10:6,15:8},"MEG":{10:7,15:10}}
+    soglias_mycriteria = {"EEG":{10:6,15:8},"MEG":{10:7,15:9}}
+    soglias = soglias_cohen if selection_method=="Cohen_effect_size" else soglias_mycriteria if selection_method=="MyCriteria" else None
+
+    soglia = soglias[DataType][fino_a] # 7 per MEG,finoa10 - 10 per MEG,finoa15 -  6 per EEG,finoa10 - 8 per EEG,finoa15
+
+    regioni_selected = pd.read_pickle(filepath+f"_{selection_method}_{DataType}_among_5_folds_training_selected_freq_8_30.pkl")["ROIs_All_trials"].to_numpy()
+
+    regioni_selected = np.array(regioni_selected.tolist()) 
+
+    counts, bins = np.histogram(regioni_selected[:,0:fino_a].flatten(),bins=np.arange(0,69))
+
+    regioni_finali = [i for i in range(len(counts)) if counts[i] >=  soglia ]
+
+    return regioni_finali
 
 def extract_features_from_spectra_more_bands(wpsdMI, wpsdRest, selected_regions, frequiMI,
                     min_freq_frature=[4,8,12], max_freq_frature=[8,12,30], 
