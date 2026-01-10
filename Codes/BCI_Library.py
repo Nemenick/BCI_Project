@@ -179,8 +179,8 @@ def plot_violin_all_subj(Dataframe_performances,  num_settings_showed,  dict_fix
     violins = ax_violin.violinplot(
         all_perfs,
         positions=x_positions,
-        showmeans=False,
-        showmedians=True,
+        showmeans=True,
+        showmedians=False,
         widths=0.8,
     )
 
@@ -212,7 +212,7 @@ def plot_violin_all_subj(Dataframe_performances,  num_settings_showed,  dict_fix
     
 def plot_violin_track_single_fold(PerformanceData,num_settings_showed_per_subject,
                                  dict_fixed_selection,dict_per_setting,
-                                 x_ticklabels,hlines_positions = [], savepath=False):
+                                 x_ticklabels,hlines_positions = [], savepath=False, additional_title=""):
     size = 20
     chance_lvl = 0.58 # https://pubmed.ncbi.nlm.nih.gov/25596422/
     hlines_positions = hlines_positions + [chance_lvl]
@@ -244,8 +244,6 @@ def plot_violin_track_single_fold(PerformanceData,num_settings_showed_per_subjec
                 np.array(list(rows["Performance"].values))
             )
 
-        perfs_subject = np.array(perfs_subject)
-
         # ----------------------
         # Violin plot
         # ----------------------
@@ -263,9 +261,8 @@ def plot_violin_track_single_fold(PerformanceData,num_settings_showed_per_subjec
             body.set_edgecolor("black") 
             body.set_alpha(0.6)
 
-        x_scatter = np.repeat(x_positions, perfs_subject.shape[1])
-        y_scatter = perfs_subject.flatten()
-        x_scatter= np.repeat(x_scatter, perfs_subject.shape[-1])
+        x_scatter = np.concatenate([ np.repeat(x_positions[i], len(perfs_subject[i][0])) for i in range(len(perfs_subject)) ])
+        y_scatter = np.concatenate([i[0] for i in perfs_subject], axis=0)
         ax.scatter( x_scatter, y_scatter, s=size, alpha=0.7, zorder=10, color="red")
         xmin, xmax = ax.get_xlim()
         # CHANCE LEVEL
@@ -279,17 +276,17 @@ def plot_violin_track_single_fold(PerformanceData,num_settings_showed_per_subjec
         ax.set_xticklabels(x_ticklabels)
     for ax in axes[::n_cols]:
         ax.set_ylabel("Performance")
-    axes[0].set_ylim(0.5, 1.05);  ax.set_xlim(-0.4, 2.4)
+    axes[0].set_ylim(0.5, 1.05);  ax.set_xlim(-0.4, num_settings_showed_per_subject-0.6)
     # Remove unused axes if any
     for ax in axes[num_subjects:]:
         ax.axis("off")
     # ==========================
-    # GLOBAL TITLE
-    title = "Performance Distribution per Subject (Boxplots)\n"
+    # TITLE
+    title = "Performance Distribution per Subject\n"
     for k, v in dict_fixed_selection.items():
         title += f"{k}:{v} | "
 
-    fig.suptitle(title[:-2], fontsize=16)
+    fig.suptitle(title[:-2]+additional_title, fontsize=16)
     plt.tight_layout(rect=[0, 0, 1, 0.96])
     if savepath:
         plt.savefig(savepath,dpi=300)
