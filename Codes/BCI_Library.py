@@ -180,9 +180,10 @@ def plot_violin_all_subj(Dataframe_performances,  num_settings_showed,  dict_fix
         all_perfs,
         positions=x_positions,
         showmeans=True,
-        showmedians=False,
+        #showmedians=True,
         widths=0.8,
     )
+    violins['cmeans'].set_color('red') # mean line vp['cmedians'].set_color('black') # median line
 
     for part in violins['bodies']+[violins['cbars']]:
         part.set_zorder(-20)
@@ -212,7 +213,7 @@ def plot_violin_all_subj(Dataframe_performances,  num_settings_showed,  dict_fix
     
 def plot_violin_track_single_fold(PerformanceData,num_settings_showed_per_subject,
                                  dict_fixed_selection,dict_per_setting,
-                                 x_ticklabels,hlines_positions = [], savepath=False, additional_title=""):
+                                 x_ticklabels,hlines_positions = [], savepath=False, additional_title="", vlines_positions = None):
     size = 20
     chance_lvl = 0.58 # https://pubmed.ncbi.nlm.nih.gov/25596422/
     hlines_positions = hlines_positions + [chance_lvl]
@@ -267,6 +268,8 @@ def plot_violin_track_single_fold(PerformanceData,num_settings_showed_per_subjec
         xmin, xmax = ax.get_xlim()
         # CHANCE LEVEL
         ax.hlines(hlines_positions, xmin, xmax, colors="gray", linestyles="dashed", alpha=0.7)
+        if vlines_positions:
+            ax.vlines(vlines_positions,0,1, colors="gray", linestyles="dashed", alpha=0.7)
         ax.set_title(f"Subject {subject}", fontsize=10)
 
     # ==========================
