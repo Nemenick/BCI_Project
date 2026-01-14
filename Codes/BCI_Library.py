@@ -19,7 +19,9 @@ from matplotlib.colors import ListedColormap
 
 ################################## Random utils ######################################################
 
-def plot_brain(regions_to_color=[], atlas="aparc", printnameregions=False, brain_object_dict={}, showbrainplot=True, savepath=None, colors=[(1, 0, 0)]):
+def plot_brain(regions_to_color=[], atlas="aparc", printnameregions=False, brain_object_dict={}, 
+               showbrainplot=True, savepath=None, colors=[(1, 0, 0)]):
+    
     mne.viz.set_3d_backend('pyvistaqt')  # or 'pyvistaqt'
     labels = mne.read_labels_from_annot("fsaverage", parc=atlas) # the Desikan-Killiany Atlas
     rtc = [i for i in regions_to_color]
