@@ -70,4 +70,4 @@ with open(path+tag+'/_Backup_script.txt', "w") as f:
 #     f.write("\n\n\n"+"#"*45+"GAN_utils_Details"+"#"*45+"\n"+script_content)
 
 # TODO: 
-# COME NORMALIZZARE? (VAEGG esclude tutti quelli superiori a 400 microV)
+# COME NORMALIZZARE? (VAEGG esclude tutti quelli superiori a 400 microV; BrainOmni normalizza per channel)

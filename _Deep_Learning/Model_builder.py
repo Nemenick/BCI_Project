@@ -12,6 +12,7 @@ class MultiTaskModel(tf.keras.Model):
         activation="leaky_relu",
         use_decoder=True,
         use_classifier=True,
+        latent_activation =  None, # use tanh if you want to ccompare with handextracted features ???
         **kwargs
     ):
         super().__init__(**kwargs)
@@ -21,6 +22,7 @@ class MultiTaskModel(tf.keras.Model):
         self.conv_filters = conv_filters
         self.kernel_size = kernel_size
         self.activation = activation
+        self.latent_activation = latent_activation
 
         # Build components
         self.encoder = self._build_encoder()
@@ -47,7 +49,7 @@ class MultiTaskModel(tf.keras.Model):
         x = layers.Flatten()(x)
 
         x = layers.Dense(self.latent_dim*2, activation=self.activation)(x)
-        latent = layers.Dense(self.latent_dim, name="latent")(x)
+        latent = layers.Dense(self.latent_dim, name="latent", activation=self.latent_activation)(x)
 
         return models.Model(inputs, latent, name="encoder")
 
