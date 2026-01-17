@@ -6,20 +6,18 @@ class MultiTaskModel(tf.keras.Model):
     def __init__(
         self,
         input_shape,
-        latent_dim,
-        num_classes=None,
-        conv_filters=(32, 64),
+        latent_dim=16,
+        conv_filters=(16, 64, 256, 128),
         kernel_size=3,
-        activation="relu",
+        activation="leaky_relu",
         use_decoder=True,
-        use_classifier=False,
+        use_classifier=True,
         **kwargs
     ):
         super().__init__(**kwargs)
 
         self.input_shape_ = input_shape
         self.latent_dim = latent_dim
-        self.num_classes = num_classes
         self.conv_filters = conv_filters
         self.kernel_size = kernel_size
         self.activation = activation
@@ -36,12 +34,19 @@ class MultiTaskModel(tf.keras.Model):
         inputs = layers.Input(shape=self.input_shape_, name="encoder_input")
 
         x = inputs
-        for filters in self.conv_filters:
+
+        for n_layer in range(len(self.conv_filters)):
+            filters = self.conv_filters[n_layer]
             x = layers.Conv1D(filters, self.kernel_size, padding="same")(x)
+            x = layers.BatchNormalization()(x)            
             x = layers.Activation(self.activation)(x)
             x = layers.MaxPooling1D()(x)
+            if n_layer < len(self.conv_filters) -1 :
+                x = layers.Dropout(0.3)(x)
 
         x = layers.Flatten()(x)
+
+        x = layers.Dense(self.latent_dim*2, activation=self.activation)(x)
         latent = layers.Dense(self.latent_dim, name="latent")(x)
 
         return models.Model(inputs, latent, name="encoder")
@@ -79,17 +84,13 @@ class MultiTaskModel(tf.keras.Model):
     # CLASSIFIER
     # --------------------------------------------------
     def _build_classifier(self):
-        if self.num_classes is None:
-            raise ValueError("num_classes must be provided when use_classifier=True")
-
         latent_inputs = layers.Input(shape=(self.latent_dim,), name="classifier_input")
 
-        x = layers.Dense(128, activation=self.activation)(latent_inputs)
         outputs = layers.Dense(
-            self.num_classes,
-            activation="softmax",
+            1,
+            activation="sigmoid",
             name="classification"
-        )(x)
+        )(latent_inputs)
 
         return models.Model(latent_inputs, outputs, name="classifier")
 
