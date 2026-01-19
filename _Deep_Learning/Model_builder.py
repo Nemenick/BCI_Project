@@ -42,11 +42,11 @@ class MultiTaskModel(tf.keras.Model):
             x = layers.Conv1D(filters, self.kernel_size, padding="same")(x)
             x = layers.BatchNormalization()(x)            
             x = layers.Activation(self.activation)(x)
-            x = layers.MaxPooling1D()(x)
+            x = layers.MaxPooling1D()(x)                        # downsample by 2 n_filters times (4-> shape is 128/16 = 8)
             if n_layer < len(self.conv_filters) -1 :
                 x = layers.Dropout(0.3)(x)
 
-        x = layers.Flatten()(x)
+        x = layers.Flatten()(x) # 8 * 128 = 1024
 
         x = layers.Dense(self.latent_dim*2, activation=self.activation)(x)
         latent = layers.Dense(self.latent_dim, name="latent", activation=self.latent_activation)(x)
@@ -61,11 +61,10 @@ class MultiTaskModel(tf.keras.Model):
 
         downsample_factor = 2 ** len(self.conv_filters)
         h = self.input_shape_[0] // downsample_factor
-        w = self.input_shape_[1] // downsample_factor
         c = self.conv_filters[-1]
-
-        x = layers.Dense(h * w * c)(latent_inputs)
-        x = layers.Reshape((h, w, c))(x)
+        print(h,c)
+        x = layers.Dense(h * c)(latent_inputs)
+        x = layers.Reshape((h, c))(x)
 
         for filters in reversed(self.conv_filters):
             x = layers.UpSampling1D()(x)
