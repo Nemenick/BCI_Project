@@ -1,18 +1,19 @@
 import tensorflow as tf
+
 from tensorflow.keras import layers, models, losses, optimizers, metrics
 
 
 class MultiTaskModel(tf.keras.Model):
     def __init__(
         self,
-        input_shape,
+        input_shape = (128,1),
         latent_dim=16,
         conv_filters=(16, 64, 256, 128),
         kernel_size=3,
         activation="leaky_relu",
         use_decoder=True,
         use_classifier=True,
-        latent_activation =  None, # use tanh if you want to ccompare with handextracted features ???
+        latent_activation =  None, # use tanh if you want to compare with handextracted features ???
         **kwargs
     ):
         super().__init__(**kwargs)
@@ -48,7 +49,7 @@ class MultiTaskModel(tf.keras.Model):
 
         x = layers.Flatten()(x) # 8 * 128 = 1024
 
-        x = layers.Dense(self.latent_dim*2, activation=self.activation)(x)
+        x = layers.Dense(self.latent_dim*2, activation=self.activation)(x) # TODO yes or no?? (Attenttion to batch norm here)
         latent = layers.Dense(self.latent_dim, name="latent", activation=self.latent_activation)(x)
 
         return models.Model(inputs, latent, name="encoder")
@@ -75,7 +76,7 @@ class MultiTaskModel(tf.keras.Model):
             self.input_shape_[-1],
             kernel_size=3,
             padding="same",
-            activation="sigmoid",
+            activation="sigmoid",   # TODO attention to the normalization of data
             name="reconstruction"
         )(x)
 
@@ -166,3 +167,6 @@ class MultiTaskModel(tf.keras.Model):
 
         else:
             raise RuntimeError("Model has neither decoder nor classifier.")  
+
+
+
