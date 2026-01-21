@@ -16,6 +16,7 @@ def freq_filter(signal,sf,freqs,type_filter="bandpass", order_filter=4):
 
 
 def extract_windows(x, win_len=128, shift=62):
+    """ OK, verified (see Test.ipynb -> Function extract window check)"""
     # x shape: (192, 68, 748) 
     # 192 trials, 68 ROIs, 748 time points
     # 128 + 62*(11-1)  = 748

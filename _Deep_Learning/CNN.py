@@ -13,7 +13,7 @@ import sys
 from Deep_Library_BCI import MultiTaskModel
 sys.path.append(os.path.abspath("Codes"))
 
-from Utils import freq_filter
+from Utils import freq_filter, extract_windows
 
 from BCI_Library import read_subject
 data_folder="../Data/"
@@ -21,8 +21,8 @@ data_folder="../Data/"
 # print(f"\n\nCurrent working directory: {os.getcwd()}") # Current working directory: /home/silvia/Documents/GitHub/BCI_Project
 
 path = "_Deep_Learning/Models_trained"
-script_name = "_Deep_Learning/CNN.py"
-Additional_NAME = "_Deep_Learning/Deep_library_BCI.py"
+Script_name = "_Deep_Learning/CNN.py"
+Additional_Script_name = "_Deep_Learning/Deep_library_BCI.py"
 
 tag = "First_Try"
 now = datetime.now()
@@ -30,14 +30,21 @@ formatted_time = now.strftime("%Y-%m-%d_%H_%M_%S")
 tag = formatted_time + "_" + tag # /home/silvia/Documents/GitHub/GAN_Prova/GAN/WGAN/tag_time 
 
 
+start = 3           # seconds where to start to extract windows
+sampling_hz = 250;  start = start*sampling_hz
+input_shape = 128   # length of each window
+shift = 62          # points to shift for next window in data
+num_windows = 11    # how many windows to extract from each trial
+
+end = start + (num_windows-1)*shift + input_shape  # seconds where to end to extract windows (1500 == 6 seconds)
+
 epochs = 200
 batch_monitor=35
-input_shape = 128
-shift = 62          # points to shift for next window in data
 latent_dim = 16
 BATCH_SIZE = 512
 LAST_LAYER_ACTIVATION = "sigmoid"
 tanh = False
+
 
 
 try:
@@ -59,18 +66,19 @@ except Exception as e:
 
 os.mkdir(path+tag)
 # Backup scripts
-with open(script_name, "r") as f:
+with open(Script_name, "r") as f:
     script_content = f.read()
 with open(path+tag+'/_Backup_script.txt', "w") as f:
     f.write(script_content)
 
-with open(Additional_NAME, "r") as fu:
+with open(Additional_Script_name, "r") as fu:
     script_content = fu.read()
 with open(path+tag+'/_Backup_script.txt', "a") as f:
     f.write("\n\n\n"+"#"*45+"GAN_utils_Details"+"#"*45+"\n"+script_content)
 
 # TODO: 
-# COME NORMALIZZARE? (VAEGG esclude tutti quelli superiori a 400 microV; BrainOmni normalizza per channel)
+# COME NORMALIZZARE? (VAEGG esclude tutti quelli superiori a 400 microV; BrainOmni eachchannel is normalised to zero mean and unitvariance 
+# at sample level)
 
 subject = 2
 DataType = "EEG"
@@ -79,5 +87,13 @@ data_2_Rest = read_subject(data_folder, DataType, "Baseline",subject)
 data_2_MI = read_subject(data_folder, DataType, "MI",subject)
 data = np.concatenate((data_2_Rest, data_2_MI), axis=0)
 
-data = freq_filter(data, sf=250, freqs=[4,45], type_filter="bandpass")
-data = data[:,:,3*250:6*250]        #  data.shape = (192, 68, 750)
+data = freq_filter(data, sf=250, freqs=[4,45], type_filter="bandpass") # axis = -1 by default
+data = data[:,:,start:end]        #  data.shape = (192, 68, 748)
+
+##################################################
+# TODO Normalization
+##################################################
+
+##################################################
+# TODO Split Train Val Test
+##################################################
