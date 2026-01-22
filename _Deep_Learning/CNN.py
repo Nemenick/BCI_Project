@@ -13,16 +13,16 @@ import sys
 from Deep_Library_BCI import MultiTaskModel
 sys.path.append(os.path.abspath("Codes"))
 
-from Utils import freq_filter, extract_windows
+from Utils import freq_filter, split_train_val_test, windowize
 
 from BCI_Library import read_subject
-data_folder="../Data/"
+data_folder="Data/"
 
 # print(f"\n\nCurrent working directory: {os.getcwd()}") # Current working directory: /home/silvia/Documents/GitHub/BCI_Project
 
-path = "_Deep_Learning/Models_trained"
+path = "_Deep_Learning/Models_trained/"
 Script_name = "_Deep_Learning/CNN.py"
-Additional_Script_name = "_Deep_Learning/Deep_library_BCI.py"
+Additional_Script_name = "_Deep_Learning/Deep_Library_BCI.py"
 
 tag = "First_Try"
 now = datetime.now()
@@ -45,6 +45,11 @@ BATCH_SIZE = 512
 LAST_LAYER_ACTIVATION = "sigmoid"
 tanh = False
 
+
+train_percentage = 0.7
+validation_percentage = 0.15
+test_percentage = 0.15
+trp = train_percentage; vp = validation_percentage; tep = test_percentage
 
 
 try:
@@ -74,7 +79,7 @@ with open(path+tag+'/_Backup_script.txt', "w") as f:
 with open(Additional_Script_name, "r") as fu:
     script_content = fu.read()
 with open(path+tag+'/_Backup_script.txt', "a") as f:
-    f.write("\n\n\n"+"#"*45+"GAN_utils_Details"+"#"*45+"\n"+script_content)
+    f.write("\n\n\n"+"#"*150+"\n"+"#"*45+"  Deep_Library_BCI details  "+"#"*45+"\n"+script_content)
 
 # TODO: 
 # COME NORMALIZZARE? (VAEGG esclude tutti quelli superiori a 400 microV; BrainOmni eachchannel is normalised to zero mean and unitvariance 
@@ -90,10 +95,18 @@ data = np.concatenate((data_2_Rest, data_2_MI), axis=0)
 data = freq_filter(data, sf=250, freqs=[4,45], type_filter="bandpass") # axis = -1 by default
 data = data[:,:,start:end]        #  data.shape = (192, 68, 748)
 
-##################################################
-# TODO Normalization
-##################################################
+train, val, test = split_train_val_test(data, train_percentage=trp, validation_percentage=vp, test_percentage=tep)
+
+x_train, y_train = windowize(*train, win_len=input_shape, shift=shift)
+x_val, y_val = windowize(*val, win_len=input_shape, shift=shift)
+x_test, y_test = windowize(*test, win_len=input_shape, shift=shift)
+
+print(f"x_train shape: {x_train.shape}, x_val shape: {x_val.shape}, x_test shape: {x_test.shape}")
+
+
 
 ##################################################
-# TODO Split Train Val Test
+# TODO Normalization (per region)
 ##################################################
+
+
