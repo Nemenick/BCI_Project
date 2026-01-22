@@ -48,7 +48,6 @@ def create_labels(n_trials, n_regions=68):
 
 
 ############################ Composite functions #############################
-                        # Use simple functions in them # 
 
 
 def split_train_val_test(x, train_percentage=0.7, validation_percentage=0.15, test_percentage=0.15, seed=42):
@@ -116,6 +115,82 @@ def windowize(X,Y, win_len=128, shift=62):
     # (n_traces*n_windows_per_trace, win_len), (n_traces*n_windows_per_trace,)
 
     return X_windowed_reshaped, Y_windowed_reshaped
+
+
+import numpy as np
+
+class RegionWiseStandardizer:
+    """
+    Standardize time-series traces using per-label mean and std
+    computed ONLY on training data.
+    """
+
+    def __init__(self, eps=1e-15):
+        self.eps = eps
+        self.mu_ = {}
+        self.std_ = {}
+        self.regions = None
+        self.fitted_ = False
+
+    def fit(self, X, y):
+        """
+        X: array (n_samples, n_timepoints)
+        y: array (n_samples,)
+        """
+        X = np.asarray(X)
+        y = np.asarray(y)
+
+        if X.ndim != 2:
+            raise ValueError("X must be 2D (samples, timepoints)")
+        if y.ndim != 1:
+            raise ValueError("y must be 1D (samples,)")
+
+        self.regions = np.unique(np.abs(y))
+
+        for region in self.regions:
+            X_region = X[np.abs(y) == region]
+
+            mu = X_region.mean()
+            std = X_region.std()
+
+            #std[std < self.eps] = 1.0
+            print(X_region.shape, mu.shape, std.shape)
+            print(std)
+
+            self.mu_[region] = mu
+            self.std_[region] = std
+
+        self.fitted_ = True
+        return self
+
+    def transform(self, X, y):
+        """
+        Normalize X using region-dependent statistics.
+        """
+        if not self.fitted_:
+            raise RuntimeError("Call fit() before transform()")
+
+        X = np.asarray(X)
+        y = np.asarray(y)
+
+        if X.ndim != 2:
+            raise ValueError("X must be 2D (samples, timepoints)")
+        if y.ndim != 1:
+            raise ValueError("y must be 1D (samples,)")
+
+        Xn = np.empty_like(X, dtype=float)
+
+        for region in np.unique(np.abs(y)):
+            if region not in self.mu_:
+                raise ValueError(f"Region {region} not seen during fit")
+
+            idx = (np.abs(y) == region)
+            Xn[idx] = (X[idx] - self.mu_[region]) / self.std_[region]
+
+        return Xn
+
+    def fit_transform(self, X, y):
+        return self.fit(X, y).transform(X, y)
 
 
 

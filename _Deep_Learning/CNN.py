@@ -13,7 +13,7 @@ import sys
 from Deep_Library_BCI import MultiTaskModel
 sys.path.append(os.path.abspath("Codes"))
 
-from Utils import freq_filter, split_train_val_test, windowize
+from Utils import freq_filter, split_train_val_test, windowize, RegionWiseStandardizer
 
 from BCI_Library import read_subject
 data_folder="Data/"
@@ -88,6 +88,9 @@ with open(path+tag+'/_Backup_script.txt', "a") as f:
 subject = 2
 DataType = "EEG"
 
+##########################################
+# Read data - filter
+# TODO ATTENTION to put Rest before, then MI (for create_labels function)  
 data_2_Rest = read_subject(data_folder, DataType, "Baseline",subject)
 data_2_MI = read_subject(data_folder, DataType, "MI",subject)
 data = np.concatenate((data_2_Rest, data_2_MI), axis=0)
@@ -95,18 +98,32 @@ data = np.concatenate((data_2_Rest, data_2_MI), axis=0)
 data = freq_filter(data, sf=250, freqs=[4,45], type_filter="bandpass") # axis = -1 by default
 data = data[:,:,start:end]        #  data.shape = (192, 68, 748)
 
-train, val, test = split_train_val_test(data, train_percentage=trp, validation_percentage=vp, test_percentage=tep)
+########################################## 
+# Split - Extract windows
+# preserve balancing of data
+# TODO think to reshape based on order='F' when reshaping (I suppose only on split train test, not windowed).
+# In this way I can have windows that belongs to the same regions subsequent
+train_xy, val_xy, test_xy = split_train_val_test(data, train_percentage=trp, validation_percentage=vp, test_percentage=tep)
 
-x_train, y_train = windowize(*train, win_len=input_shape, shift=shift)
-x_val, y_val = windowize(*val, win_len=input_shape, shift=shift)
-x_test, y_test = windowize(*test, win_len=input_shape, shift=shift)
+x_train, y_train = windowize(*train_xy, win_len=input_shape, shift=shift)
+x_val, y_val     = windowize(*val_xy, win_len=input_shape, shift=shift)
+x_test, y_test   = windowize(*test_xy, win_len=input_shape, shift=shift)
+# shape: x -> (n_windows, timepoints) ; y -> (n_windows,)
+# y is ± region index (sign is MI or Rest; absolute value is region index)
 
-print(f"x_train shape: {x_train.shape}, x_val shape: {x_val.shape}, x_test shape: {x_test.shape}")
+print(f"\n\nx_train shape: {x_train.shape}, x_val shape: {x_val.shape}, x_test shape: {x_test.shape}\n\n")
 
 
 
 ##################################################
-# TODO Normalization (per region)
+# Normalization (per region)
+# Optimizing EEG ICA Decomposition with Machine Learning: A CNN-Based Alternative to EEGLAB for Fast and Scalable Brain Activity Analysis
+# Assessing the Role of EEG Biosignal Preprocessing to Enhance Multiscale Fuzzy Entropy in Alzheimer’s Disease Detection
+# (when applying on multiple subjects) Cross-Subject EEG-Based Emotion Recognition Through Neural Networks With Stratified Normalization 
 ##################################################
 
+scaler = RegionWiseStandardizer()
+x_train = scaler.fit_transform(x_train, y_train)
+x_val = scaler.transform(x_val, y_val)
+x_test = scaler.transform(x_test, y_test)
 
