@@ -2,7 +2,10 @@ import numpy as np
 import scipy.signal as sc_sig
 from numpy.lib.stride_tricks import sliding_window_view
 from sklearn.model_selection import train_test_split
-
+import os
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
 
 ############################# Simple functions #############################
 
@@ -56,6 +59,7 @@ def split_train_val_test(x, train_percentage=0.7, validation_percentage=0.15, te
     
     x: array, shape (n_trials, n_regions, n_timepoints)
         Before Rest(0:n_trials//2), then  Motor Imagery (n_trials//2:n_trials)
+        They get NEGATIVE labels          They get POSITIVE labels
     """
     trp = train_percentage; vp = validation_percentage; tep = test_percentage
 
@@ -67,7 +71,7 @@ def split_train_val_test(x, train_percentage=0.7, validation_percentage=0.15, te
     n_regions = x.shape[1]
 
     y = create_labels(n_trials, n_regions) 
-    # shape (n_trials, n_regions) positive for MI, negative for Rest; numbered 1,2,3...n_regions per regions
+    # shape (n_trials, n_regions) negative for Rest, positive for MI; numbered 1,2,3...n_regions per regions
 
     y = y.reshape(-1,) # da eseguire insieme al reshape dei dati
     x = x.reshape(-1,x.shape[-1],) # shape (n_trials*n_regions, n_timepoints)
@@ -154,8 +158,8 @@ class RegionWiseStandardizer:
             std = X_region.std()
 
             #std[std < self.eps] = 1.0
-            print(X_region.shape, mu.shape, std.shape)
-            print(std)
+            # print(X_region.shape, mu.shape, std.shape)
+            # print(std)
 
             self.mu_[region] = mu
             self.std_[region] = std
@@ -194,3 +198,85 @@ class RegionWiseStandardizer:
 
 
 
+
+class TraceWiseStandardizer:
+
+    def __init__(self, method="zscore"):
+        self.method = method
+
+    def zscore_normalizer(self, X):
+        mu = X.mean(axis=1, keepdims=True)
+        std = X.std(axis=1, keepdims=True)
+        std[std == 0] = 1.0
+        return (X - mu) / std
+
+    def minmax_normalizer(self, X):
+        minv = X.min(axis=1, keepdims=True)
+        maxv = X.max(axis=1, keepdims=True)
+        denom = maxv - minv
+        denom[denom == 0] = 1.0
+        return (X - minv) / denom
+
+    def __call__(self, X):
+        if self.method == "zscore":
+            return self.zscore_normalizer(X)
+        elif self.method == "minmax":
+            return self.minmax_normalizer(X)
+        else:
+            raise ValueError("Unknown method")
+
+
+############################## Saving results #############################
+
+def save_training_results(model, history, save_dir):
+    """
+    Save:
+    - Keras model
+    - training history as CSV
+    - one plot per metric (train + val)
+    """
+
+    os.makedirs(save_dir, exist_ok=True)
+
+    # ---------------------------
+    # 1. Save weights
+    # ---------------------------
+    weights_path = os.path.join(save_dir, "model.weights.h5")
+    model.save_weights(weights_path)
+    print(f"Model weights saved to {weights_path}")
+
+    # ---------------------------
+    # 2. History -> DataFrame
+    # ---------------------------
+    hist_df = pd.DataFrame(history.history)
+    csv_path = os.path.join(save_dir, "history.csv")
+    hist_df.to_csv(csv_path, index=False)
+    print(f"History saved to {csv_path}")
+
+    # ---------------------------
+    # 3. Plot metrics
+    # ---------------------------
+    for key in hist_df.columns:
+
+        # skip validation keys here (handled together)
+        if key.startswith("val_"):
+            continue
+
+        plt.figure()
+        plt.plot(hist_df[key], label=f"train_{key}")
+
+        val_key = f"val_{key}"
+        if val_key in hist_df.columns:
+            plt.plot(hist_df[val_key], label=val_key)
+
+        plt.xlabel("Epoch")
+        plt.ylabel(key)
+        plt.title(key)
+        plt.legend()
+        plt.grid(True)
+
+        fig_path = os.path.join(save_dir, f"{key}.png")
+        plt.savefig(fig_path, dpi=150, bbox_inches="tight")
+        plt.close()
+
+    print(f"Plots saved to {save_dir}")
