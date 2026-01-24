@@ -6,6 +6,7 @@ import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
 ############################# Simple functions #############################
 
@@ -89,7 +90,7 @@ def split_train_val_test(x, train_percentage=0.7, validation_percentage=0.15, te
         X_tmp, y_tmp,
         test_size=vp/(vp+tep),         
         stratify=y_tmp,     # preserves label balance
-        random_state=seed,
+        random_state=seed+179,
         shuffle=True
     )
 
@@ -226,7 +227,7 @@ class TraceWiseStandardizer:
             raise ValueError("Unknown method")
 
 
-############################## Saving results #############################
+############################## Saving results / Performances #############################
 
 def save_training_results(model, history, save_dir):
     """
@@ -280,3 +281,68 @@ def save_training_results(model, history, save_dir):
         plt.close()
 
     print(f"Plots saved to {save_dir}")
+
+
+def evaluate_classification_by_region(model, x_test, y_test, save_name=None, threshold=0.5):
+    """
+    Compute classification performance grouped by abs(y_test).
+    Saves a CSV in save_dir.
+    """
+    # Model predictions
+    y_prob = model.predict(x_test).squeeze()
+    y_pred = (y_prob >= threshold).astype(int)
+
+    results = []
+
+    for region in np.unique(np.abs(y_test)):
+        mask = np.abs(y_test) == region
+        y_true = (y_test[mask] > 0).astype(int)
+        y_region_pred = y_pred[mask]
+
+        if len(y_true) == 0:
+            continue
+        row = {
+            "region": region,
+            "n_windows": len(y_true),
+            "accuracy": accuracy_score(y_true, y_region_pred),
+            "precision": precision_score(y_true, y_region_pred, zero_division=0),
+            "recall": recall_score(y_true, y_region_pred, zero_division=0),
+            "f1": f1_score(y_true, y_region_pred, zero_division=0),
+        }
+
+        results.append(row)
+    df = pd.DataFrame(results).sort_values("region").reset_index(drop=True)
+
+    # Save
+    if save_name is not None:
+        df.to_csv(save_name, index=False)
+
+    print(f"Region-wise performance saved to {save_name}")
+
+    return df
+    
+
+def aggregate_region_dfs(dfs):
+    """
+    dfs: list of DataFrames (one per fold) [df1, df2, ...]
+    each dataframe has columns: region, n_windows, accuracy, precision, recall, f1... (a single float per column)
+    Returns: aggregated DataFrame with tuple-valued metrics
+    """
+
+    # Use region as index for all dfs
+    dfs = [df.set_index("region") for df in dfs]
+
+    regions = dfs[0].index
+    metric_cols = dfs[0].columns
+
+    aggregated_rows = []
+
+    for region in regions:
+        row = {"region": region}
+
+        for col in metric_cols:
+            row[col] = tuple(df.loc[region, col] for df in dfs)
+
+        aggregated_rows.append(row)
+
+    return pd.DataFrame(aggregated_rows)

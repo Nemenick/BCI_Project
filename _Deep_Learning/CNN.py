@@ -1,5 +1,6 @@
 # nohup .venv/bin/python _Deep_Learning/CNN.py &> _Deep_Learning/LOGS/CNN_out_2026_01_16_10_30.txt
 
+import time
 import os
 from datetime import datetime
 import numpy as np
@@ -14,7 +15,7 @@ import sys
 from Deep_Library_BCI import MultiTaskModel
 sys.path.append(os.path.abspath("Codes"))
 
-from Utils import freq_filter, split_train_val_test, windowize, save_training_results
+from Utils import freq_filter, split_train_val_test, windowize, save_training_results, evaluate_classification_by_region, aggregate_region_dfs
 from Utils import RegionWiseStandardizer
 
 from BCI_Library import read_subject
@@ -28,7 +29,7 @@ Additional_Script_name = "_Deep_Learning/Deep_Library_BCI.py"
 
 tag = "First_Try"
 now = datetime.now()
-formatted_time = now.strftime("%Y-%m-%d_%H_%M_%S")
+formatted_time = now.strftime("%Y-%m-%d-%H_%M_%S")
 tag = formatted_time + "_" + tag # /home/silvia/Documents/GitHub/GAN_Prova/GAN/WGAN/tag_time 
 savedir = path+tag+"/"
 
@@ -40,11 +41,11 @@ num_windows = 11    # how many windows to extract from each trial
 
 end = start + (num_windows-1)*shift + input_shape  # seconds where to end to extract windows (1500 == 6 seconds)
 
-epochs = 10
+epochs = 200
 batch_monitor=35
 latent_dim = 16
 BATCH_SIZE = 256
-pazienza = 10
+pazienza = 7
 LAST_LAYER_ACTIVATION = "sigmoid"
 tanh = False
 
@@ -104,49 +105,57 @@ data = data[:,:,start:end]        #  data.shape = (192, 68, 748)
 ########################################## 
 # Split - Extract windows
 # preserve balancing of data
-# TODO think to reshape based on order='F' when reshaping (I suppose only on split train test, not windowed).
-# In this way I can have windows that belongs to the same regions subsequent
-train_xy, val_xy, test_xy = split_train_val_test(data, train_percentage=trp, validation_percentage=vp, test_percentage=tep)
 
-x_train, y_train = windowize(*train_xy, win_len=input_shape, shift=shift)
-x_val, y_val     = windowize(*val_xy, win_len=input_shape, shift=shift)
-x_test, y_test   = windowize(*test_xy, win_len=input_shape, shift=shift)
-# shape: x -> (n_windows, timepoints) ; y -> (n_windows,)
-# y is ± region index (SIGN is negative for REST and positive for MI; absolute value is region index)
+start = time.perf_counter()
 
-print(f"\n\nx_train shape: {x_train.shape}, x_val shape: {x_val.shape}, x_test shape: {x_test.shape}\n\n")
+evaluated_by_regions_dataframes = []
+for split_num,random_seed in enumerate([42, 224, 647, 157, 2005]):
+    train_xy, val_xy, test_xy = split_train_val_test(data, train_percentage=trp, validation_percentage=vp, test_percentage=tep, seed=random_seed)
 
-##################################################
-# NORMALIZATION (per region?)
-# Optimizing EEG ICA Decomposition with Machine Learning: A CNN-Based Alternative to EEGLAB for Fast and Scalable Brain Activity Analysis
-# Assessing the Role of EEG Biosignal Preprocessing to Enhance Multiscale Fuzzy Entropy in Alzheimer’s Disease Detection
-# (when applying on multiple subjects) Cross-Subject EEG-Based Emotion Recognition Through Neural Networks With Stratified Normalization 
+    x_train, y_train = windowize(*train_xy, win_len=input_shape, shift=shift)
+    x_val, y_val     = windowize(*val_xy, win_len=input_shape, shift=shift)
+    x_test, y_test   = windowize(*test_xy, win_len=input_shape, shift=shift)
+    # shape: x -> (n_windows, timepoints) ; y -> (n_windows,)
+    # y is ± region index (SIGN is negative for REST and positive for MI; absolute value is region index)
 
-scaler = RegionWiseStandardizer()
-x_train = scaler.fit_transform(x_train, y_train)
-x_val = scaler.transform(x_val, y_val)
-x_test = scaler.transform(x_test, y_test)
+    print(f"\n\nx_train shape: {x_train.shape}, x_val shape: {x_val.shape}, x_test shape: {x_test.shape}\n\n")
+
+    ##################################################
+    # NORMALIZATION (per region?)
+    # Optimizing EEG ICA Decomposition with Machine Learning: A CNN-Based Alternative to EEGLAB for Fast and Scalable Brain Activity Analysis
+    # Assessing the Role of EEG Biosignal Preprocessing to Enhance Multiscale Fuzzy Entropy in Alzheimer’s Disease Detection
+    # (when applying on multiple subjects) Cross-Subject EEG-Based Emotion Recognition Through Neural Networks With Stratified Normalization 
+
+    scaler = RegionWiseStandardizer()
+    x_train = scaler.fit_transform(x_train, y_train)
+    x_val = scaler.transform(x_val, y_val)
+    x_test = scaler.transform(x_test, y_test)
+
+    # reconstruction loss: MSE
+    # reconstruction metric: MSE
+
+    # classification loss: binary_crossentropy
+    # classification metric: accuracy
+
+    model = MultiTaskModel(use_decoder=False, use_classifier=True)
+    optimizer = optimizers.Adam(epsilon=1e-04)
+    model.compile_cases(optimizer, loss_reconstruction=None, loss_classification="binary_crossentropy")
+
+    labels_train = (y_train > 0).astype(int)
+    labels_val = (y_val > 0).astype(int)
+    labels_test = (y_test > 0).astype(int)
+
+    storia = model.fit_cases(x_train, x_val, y_train=labels_train, y_val=labels_val, epochs=epochs, batch_size=BATCH_SIZE, callbacks=EarlyStopping(monitor="val_loss", patience=pazienza,  restore_best_weights=True))
+    # EarlyStopping comments:
+    # val_loss in multi-output monitors the total loss (weighted);
+    # patience 10 is good For Classification only
+    save_training_results(model, storia, savedir+f"Split_{split_num}/")
 
 
-# reconstruction loss: MSE
-# reconstruction metric: MSE
+    # Compute performances varying the region
+    evaluated_by_regions_dataframes.append(evaluate_classification_by_region(model, x_test, y_test, save_name=savedir+f"region_performance_split_{split_num}.csv", threshold=0.5))
 
-# classification loss: binary_crossentropy
-# classification metric: accuracy
+aggregated_df = aggregate_region_dfs(evaluated_by_regions_dataframes)
+aggregated_df.to_pickle(f"{savedir}aggregated_region_performance.pkl")
 
-model = MultiTaskModel(use_decoder=False, use_classifier=True)
-optimizer = optimizers.Adam(epsilon=1e-04)
-model.compile_cases(optimizer, loss_reconstruction=None, loss_classification="binary_crossentropy")
-
-labels_train = (y_train > 0).astype(int)
-labels_val = (y_val > 0).astype(int)
-labels_test = (y_test > 0).astype(int)
-
-storia = model.fit_cases(x_train, x_val, y_train=labels_train, y_val=labels_val, epochs=epochs, batch_size=BATCH_SIZE, callbacks=EarlyStopping(monitor="val_loss", patience=pazienza,  restore_best_weights=True))
-# EarlyStopping comments:
-# val_loss in multi-output monitors the total loss (weighted);
-# patience 10 is good For Classification only
-save_training_results(model, storia, savedir)
-
-# TODO 
-# Compute performances varying the region
+print("\n\n\nTEMPOO per 5 folds", time.perf_counter()-start, "\n\n\n")

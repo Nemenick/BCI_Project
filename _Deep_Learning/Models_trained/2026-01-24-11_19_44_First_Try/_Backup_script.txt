@@ -14,7 +14,7 @@ import sys
 from Deep_Library_BCI import MultiTaskModel
 sys.path.append(os.path.abspath("Codes"))
 
-from Utils import freq_filter, split_train_val_test, windowize, save_training_results
+from Utils import freq_filter, split_train_val_test, windowize, save_training_results, evaluate_classification_by_region
 from Utils import RegionWiseStandardizer
 
 from BCI_Library import read_subject
@@ -28,7 +28,7 @@ Additional_Script_name = "_Deep_Learning/Deep_Library_BCI.py"
 
 tag = "First_Try"
 now = datetime.now()
-formatted_time = now.strftime("%Y-%m-%d_%H_%M_%S")
+formatted_time = now.strftime("%Y-%m-%d-%H_%M_%S")
 tag = formatted_time + "_" + tag # /home/silvia/Documents/GitHub/GAN_Prova/GAN/WGAN/tag_time 
 savedir = path+tag+"/"
 
@@ -40,11 +40,11 @@ num_windows = 11    # how many windows to extract from each trial
 
 end = start + (num_windows-1)*shift + input_shape  # seconds where to end to extract windows (1500 == 6 seconds)
 
-epochs = 10
+epochs = 200
 batch_monitor=35
 latent_dim = 16
 BATCH_SIZE = 256
-pazienza = 10
+pazienza = 7
 LAST_LAYER_ACTIVATION = "sigmoid"
 tanh = False
 
@@ -148,8 +148,9 @@ storia = model.fit_cases(x_train, x_val, y_train=labels_train, y_val=labels_val,
 # patience 10 is good For Classification only
 save_training_results(model, storia, savedir)
 
-# TODO 
+
 # Compute performances varying the region
+evaluate_classification_by_region(model, x_test, y_test, save_dir=savedir, threshold=0.5)
 
 
 ######################################################################################################################################################
