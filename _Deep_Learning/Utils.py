@@ -302,12 +302,13 @@ def evaluate_classification_by_region(model, x_test, y_test, save_name=None, thr
         if len(y_true) == 0:
             continue
         row = {
-            "region": region,
+            "ROIs": [region],
+            "NROIs": len([region]),
             "n_windows": len(y_true),
-            "accuracy": accuracy_score(y_true, y_region_pred),
-            "precision": precision_score(y_true, y_region_pred, zero_division=0),
-            "recall": recall_score(y_true, y_region_pred, zero_division=0),
-            "f1": f1_score(y_true, y_region_pred, zero_division=0),
+            "Accuracy": accuracy_score(y_true, y_region_pred),
+            "Precision": precision_score(y_true, y_region_pred, zero_division=0),
+            "Recall": recall_score(y_true, y_region_pred, zero_division=0),
+            "F1": f1_score(y_true, y_region_pred, zero_division=0),
         }
 
         results.append(row)
@@ -322,27 +323,37 @@ def evaluate_classification_by_region(model, x_test, y_test, save_name=None, thr
     return df
     
 
-def aggregate_region_dfs(dfs):
+def aggregate_columns_dfs(dfs,  cols_to_aggregate=["Accuracy", "Precision", "Recall", "F1", "n_windows", "Split_seed"]
+):
     """
     dfs: list of DataFrames (one per fold) [df1, df2, ...]
-    each dataframe has columns: region, n_windows, accuracy, precision, recall, f1... (a single float per column)
-    Returns: aggregated DataFrame with tuple-valued metrics
+    Each dataframe must have a 'region' column.
+    
+    Columns listed in cols_to_aggregate are aggregated into tuples (len = n_folds).
+    Other columns are assumed identical across dfs and copied as scalars.
+    
+    Returns: aggregated DataFrame
     """
 
     # Use region as index for all dfs
     dfs = [df.set_index("region") for df in dfs]
 
     regions = dfs[0].index
-    metric_cols = dfs[0].columns
+    columns = dfs[0].columns
 
     aggregated_rows = []
 
     for region in regions:
         row = {"region": region}
 
-        for col in metric_cols:
-            row[col] = tuple(df.loc[region, col] for df in dfs)
+        for col in columns:
+            if col in cols_to_aggregate:
+                row[col] = tuple(df.loc[region, col] for df in dfs)
+            else:
+                # take the common value (assumed identical across folds)
+                row[col] = dfs[0].loc[region, col]
 
         aggregated_rows.append(row)
 
     return pd.DataFrame(aggregated_rows)
+

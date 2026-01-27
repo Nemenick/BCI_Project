@@ -1,6 +1,7 @@
 # nohup .venv/bin/python _Deep_Learning/CNN.py &> _Deep_Learning/LOGS/CNN_out_2026_01_16_10_30.txt
 
 import time
+from datetime import date
 import os
 from datetime import datetime
 import numpy as np
@@ -13,14 +14,16 @@ from keras import optimizers
 from keras.callbacks import EarlyStopping
 import sys
 from Deep_Library_BCI import MultiTaskModel
-sys.path.append(os.path.abspath("Codes"))
 
-from Utils import freq_filter, split_train_val_test, windowize, save_training_results, evaluate_classification_by_region, aggregate_region_dfs
+from Utils import freq_filter, split_train_val_test, windowize, save_training_results, evaluate_classification_by_region, aggregate_columns_dfs
+Normalization = "RegionWise" # "RegionWise" or "TraceWise" or "mediatrace,stdregionwise"
 from Utils import RegionWiseStandardizer
 
+
+sys.path.append(os.path.abspath("Codes"))
 from BCI_Library import read_subject
 data_folder="Data/"
-
+today = date.today()
 # print(f"\n\nCurrent working directory: {os.getcwd()}") # Current working directory: /home/silvia/Documents/GitHub/BCI_Project
 
 path = "_Deep_Learning/Models_trained/"
@@ -109,6 +112,7 @@ data = data[:,:,start:end]        #  data.shape = (192, 68, 748)
 start = time.perf_counter()
 
 evaluated_by_regions_dataframes = []
+# seeds_for_splits [42, 224, 647, 157, 2005]
 for split_num,random_seed in enumerate([42, 224, 647, 157, 2005]):
     train_xy, val_xy, test_xy = split_train_val_test(data, train_percentage=trp, validation_percentage=vp, test_percentage=tep, seed=random_seed)
 
@@ -145,7 +149,8 @@ for split_num,random_seed in enumerate([42, 224, 647, 157, 2005]):
     labels_val = (y_val > 0).astype(int)
     labels_test = (y_test > 0).astype(int)
 
-    storia = model.fit_cases(x_train, x_val, y_train=labels_train, y_val=labels_val, epochs=epochs, batch_size=BATCH_SIZE, callbacks=EarlyStopping(monitor="val_loss", patience=pazienza,  restore_best_weights=True))
+    storia = model.fit_cases(x_train, x_val, y_train=labels_train, y_val=labels_val, epochs=epochs, batch_size=BATCH_SIZE, 
+                                callbacks=EarlyStopping(monitor="val_loss", patience=pazienza,  restore_best_weights=True))
     # EarlyStopping comments:
     # val_loss in multi-output monitors the total loss (weighted);
     # patience 10 is good For Classification only
@@ -153,9 +158,18 @@ for split_num,random_seed in enumerate([42, 224, 647, 157, 2005]):
 
 
     # Compute performances varying the region
-    evaluated_by_regions_dataframes.append(evaluate_classification_by_region(model, x_test, y_test, save_name=savedir+f"region_performance_split_{split_num}.csv", threshold=0.5))
+    tmp_df = evaluate_classification_by_region(model, x_test, y_test, save_name=savedir+f"region_performance_split_{split_num}.csv", threshold=0.5)
+    tmp_df["Split_seed"] = random_seed
+    tmp_df["DataType"] = DataType
+    tmp_df["subject"] = subject
+    tmp_df["Classifier"] = "MLP"
+    tmp_df["Features"] = "CNN_extracted"
+    tmp_df["Comments"] = "-"
+    tmp_df["Date"] = today
+    tmp_df["WindowsNormalization"] = Normalization
+    evaluated_by_regions_dataframes.append(tmp_df)
 
-aggregated_df = aggregate_region_dfs(evaluated_by_regions_dataframes)
+aggregated_df = aggregate_columns_dfs(evaluated_by_regions_dataframes)
 aggregated_df.to_pickle(f"{savedir}aggregated_region_performance.pkl")
 
 print("\n\n\nTEMPOO per 5 folds", time.perf_counter()-start, "\n\n\n")

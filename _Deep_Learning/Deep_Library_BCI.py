@@ -10,7 +10,7 @@ class MultiTaskModel(tf.keras.Model):
         latent_dim=16,
         conv_filters=(16, 64, 256, 128),
         kernel_size=3,
-        activation_fn=layers.LeakyReLU(),
+        activation_fn=layers.LeakyReLU,
         use_decoder=True,
         use_classifier=True,
         latent_activation =  None, # use tanh if you want to compare with handextracted features ???
@@ -42,17 +42,19 @@ class MultiTaskModel(tf.keras.Model):
             filters = self.conv_filters[n_layer]
             x = layers.Conv1D(filters, self.kernel_size, padding="same")(x)
             x = layers.BatchNormalization()(x)            
-            x = self.activation_fn(x)
-            x = layers.MaxPooling1D()(x)                        # downsample by 2 n_filters times (4-> shape is 128/16 = 8)
+            x = self.activation_fn()(x)
             if n_layer < len(self.conv_filters) -1 :
+                x = layers.MaxPooling1D()(x)                        # downsample by 2 n_filters times (4-> shape is 128/16 = 8)
                 x = layers.Dropout(0.3)(x)
-
-        x = layers.Flatten()(x) # 8 * 128 = 1024
+        # x now is  (16, 128 )
 
         # x = layers.Dense(self.latent_dim*2)(x) # TODO yes or no?? (Attenttion to batch norm here)
         #x = self.activation_fn(x)
-        latent = layers.Dense(self.latent_dim, name="latent", activation=self.latent_activation)(x)
+        latent = layers.Conv1D(1, 3, padding="same", name="latent", activation=self.latent_activation)(x) # TODO implement locally connected? (why keras removed it??)
+        
+        #layers.Dense(self.latent_dim, name="latent", activation=self.latent_activation)(x)
 
+    
         return models.Model(inputs, latent, name="encoder")
 
     # --------------------------------------------------
@@ -62,19 +64,22 @@ class MultiTaskModel(tf.keras.Model):
         if self.input_shape_[0] % (2 ** len(self.conv_filters)) != 0:
             raise ValueError("Input length must be divisible by total downsampling factor")
         
-        latent_inputs = layers.Input(shape=(self.latent_dim,), name="decoder_input")
+        latent_inputs = layers.Input(shape=(self.latent_dim,1), name="decoder_input")
+        x = layers.Flatten()(latent_inputs)
+        x = layers.Dense(self.latent_dim)(x)
 
         downsample_factor = 2 ** len(self.conv_filters)
         h = self.input_shape_[0] // downsample_factor
         c = self.conv_filters[-1]
-        print(h,c)
-        x = layers.Dense(h * c)(latent_inputs)
+        #print(h,c)
+        x = layers.Dense(h * c)(x)
+        x = self.activation_fn()(x)
         x = layers.Reshape((h, c))(x)
 
         for filters in reversed(self.conv_filters):
             x = layers.UpSampling1D()(x)
             x = layers.Conv1D(filters, self.kernel_size, padding="same")(x)
-            x = self.activation_fn(x)
+            x = self.activation_fn()(x)
 
         outputs = layers.Conv1D(
             self.input_shape_[-1],
@@ -90,13 +95,16 @@ class MultiTaskModel(tf.keras.Model):
     # CLASSIFIER
     # --------------------------------------------------
     def _build_classifier(self):
-        latent_inputs = layers.Input(shape=(self.latent_dim,), name="classifier_input")
+        latent_inputs = layers.Input(shape=(self.latent_dim,1), name="classifier_input")
+        x = layers.Flatten()(latent_inputs)
+
+        x = layers.Dense(self.latent_dim, activation=self.activation_fn())(x)
 
         outputs = layers.Dense(
             1,
             activation="sigmoid",
             name="classification"
-        )(latent_inputs)
+        )(x)
 
         return models.Model(latent_inputs, outputs, name="classifier")
 
