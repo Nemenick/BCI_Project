@@ -12,6 +12,7 @@ import os
 import matplotlib.pyplot as plt
 import matplotlib
 from matplotlib.colors import ListedColormap
+import tensorflow as tf
 
 # Important_regions_right =   [5, 33, 45, 49]
 # Important_regions_left =   [4, 32, 44, 48]
@@ -162,7 +163,7 @@ def plot_violin_all_subj(Dataframe_performances,  num_settings_showed,  dict_fix
             for key in dict_per_setting:
                 tmp_dict[key] = dict_per_setting[key][setting]
             rows = select_rows(PerData, dict_fixed_selection | tmp_dict)
-            perfs_per_subject.append(np.array(list(rows["Performance"].values)).mean())
+            perfs_per_subject.append(np.array(list(rows["Accuracy"].values)).mean())
         all_perfs.append(perfs_per_subject)
         shifcolor=1 if subject>=10 else 0
         color=f"C{subject+shifcolor}"
@@ -190,7 +191,7 @@ def plot_violin_all_subj(Dataframe_performances,  num_settings_showed,  dict_fix
     for part in violins['bodies']+[violins['cbars']]:
         part.set_zorder(-20)
     xlims = ax.get_xlim()
-    ax_violin.set_ylabel("Performance")
+    ax_violin.set_ylabel("Accuracy")
     ax_violin.set_xlabel(xlabel)
     ax.hlines(hlines_positions, -1, num_settings_showed, colors='grey', linestyles='dashed', label="Chance Level",zorder=-1, alpha=0.7)
     ax.set_xticks(x_positions)
@@ -201,7 +202,7 @@ def plot_violin_all_subj(Dataframe_performances,  num_settings_showed,  dict_fix
         ax.text(textes_x_positions[__], 0.1, textes[__], transform=ax.transAxes, fontsize=12, verticalalignment='top',horizontalalignment='center')
 
     ax.text(1., 0.192, f"Chance level  ", transform=ax.transAxes, fontsize=9, verticalalignment='top',horizontalalignment='right')
-    title = f"Distribution of Performance Across Subjects for Each Setting\n"
+    title = f"Distribution of Accuracy Across Subjects for Each Setting\n"
     for key,value in dict_fixed_selection.items():
         title+= f"{key}:{value} | "
     title=title[:-2]
@@ -244,7 +245,7 @@ def plot_violin_track_single_fold(PerformanceData,num_settings_showed_per_subjec
 
             rows = select_rows(PerformanceData, dict_fixed_selection | tmp_dict)
             perfs_subject.append(
-                np.array(list(rows["Performance"].values))
+                np.array(list(rows["Accuracy"].values))
             )
 
         # ----------------------
@@ -280,14 +281,14 @@ def plot_violin_track_single_fold(PerformanceData,num_settings_showed_per_subjec
         ax.set_xticks(x_positions)
         ax.set_xticklabels(x_ticklabels)
     for ax in axes[::n_cols]:
-        ax.set_ylabel("Performance")
+        ax.set_ylabel("Accuracy")
     axes[0].set_ylim(0.5, 1.05);  ax.set_xlim(-0.4, num_settings_showed_per_subject-0.6)
     # Remove unused axes if any
     for ax in axes[num_subjects:]:
         ax.axis("off")
     # ==========================
     # TITLE
-    title = "Performance Distribution per Subject\n"
+    title = "Accuracy Distribution per Subject\n"
     for k, v in dict_fixed_selection.items():
         title += f"{k}:{v} | "
 
@@ -298,7 +299,23 @@ def plot_violin_track_single_fold(PerformanceData,num_settings_showed_per_subjec
     plt.show()
 
 
-################################## Trainings ######################################################
+################################## Trainings / models ######################################################
+
+def build_compiled_mlp(input_dim, hidden_layers=[20], activation='leaky_relu', output_dim=1, output_activation='sigmoid', **adam_kargs):
+    """
+    Build a simple MLP model using Keras.
+    """
+    model = tf.keras.Sequential()
+    model.add(tf.keras.layers.InputLayer(shape=(input_dim,)))
+
+    for units in hidden_layers:
+        model.add(tf.keras.layers.Dense(units, activation=activation))
+
+    model.add(tf.keras.layers.Dense(output_dim, activation=output_activation))
+
+    adam = tf.keras.optimizers.Adam(**adam_kargs)
+    model.compile(optimizer=adam, loss='binary_crossentropy', metrics=['accuracy'])
+    return model
 
 def train_models(data_features, labels, n_kfold=5, scaler=StandardScaler, 
                  method=LinearDiscriminantAnalysis, seed=224,
@@ -357,17 +374,18 @@ def train_models(data_features, labels, n_kfold=5, scaler=StandardScaler,
         print("Std accuracy:", np.std(fold_accuracies))
     return fold_accuracies, fold_confusions, trained_models,val_indexes
 
-def train_single_model(data_features, labels, train_idx, val_idx, scaler=StandardScaler, 
-                 method=LinearDiscriminantAnalysis, seed=224,
-                 verbose=False):
+def train_single_model(data_features, labels, train_idx, val_idx, method=LinearDiscriminantAnalysis, 
+                 scaler=StandardScaler, seed=224,
+                 verbose=False, fit_kwargs={}):
     
     X_train, X_val = data_features[train_idx], data_features[val_idx]
     y_train, y_val = labels[train_idx], labels[val_idx]
     
     # StandardScaler:
-    scaler_instance = scaler()
-    X_train_scaled = scaler_instance.fit_transform(X_train)
-    X_val_scaled   = scaler_instance.transform(X_val)
+    if scaler is not None:
+        scaler_instance = scaler()
+        X_train_scaled = scaler_instance.fit_transform(X_train)
+        X_val_scaled   = scaler_instance.transform(X_val)
 
     # Model instance
     try:
@@ -377,10 +395,18 @@ def train_single_model(data_features, labels, train_idx, val_idx, scaler=Standar
             model = method()
         except:
             model = method
+    is_keras_model = isinstance(model, tf.keras.Model)
 
-    model.fit(X_train_scaled, y_train)
+    if is_keras_model:
+        model.fit(X_train_scaled, y_train,validation_data=(X_val_scaled, y_val), **fit_kwargs)
+    else:
+        model.fit(X_train_scaled, y_train)
     
     y_pred = model.predict(X_val_scaled)
+    
+    if is_keras_model:
+        y_pred = (y_pred > 0.5).astype(int).ravel()
+
     # Accuracy   # Confusion matrix
     acc = accuracy_score(y_val, y_pred)
     confusion_mat = confusion_matrix(y_val, y_pred)
@@ -432,8 +458,8 @@ def saveresults_pickle(new_rows, inputfile=None, outputfile=None, backup=True, r
         results=pd.concat((results,pd.DataFrame(new_rows)))
         if resetindex:
             results.reset_index(drop=True,inplace=True)
-        index_of_duplicates = results[results.duplicated(subset=results.keys().drop(["Date","ROIs","Performance"]))].index.values
-        print(f"There are {len(index_of_duplicates)} duplicated items (based on all columns except Date, ROIs, Performance).\n", 
+        index_of_duplicates = results[results.duplicated(subset=results.keys().drop(["Date","ROIs","Accuracy"]))].index.values
+        print(f"There are {len(index_of_duplicates)} duplicated items (based on all columns except Date, ROIs, Accuracy).\n", 
               f"Index of the duplicated items: {index_of_duplicates}")
         results.to_pickle(outputfile)
 
@@ -804,7 +830,7 @@ def select_regions_MyCriteria2(wpsdMI, wpsdRest,
     return selected_regions
 
 # deprecated 
-# but still in use
+# but still in use (maybe)
 def extract_features_more_bands(data_MI, data_Rest, sfreq, starttime, endtime, nbest_regions,
                     min_freq_frature=[4,8,12], max_freq_frature=[8,12,30], 
                     kargs_welch={"fmin":4, "fmax":30,"n_per_seg":250, "n_fft":300,"n_overlap":125},
