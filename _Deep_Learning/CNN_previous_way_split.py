@@ -1,4 +1,4 @@
-# nohup .venv/bin/python _Deep_Learning/CNN.py &> _Deep_Learning/LOGS/CNN_out_2026_01_16_10_30.txt
+# nohup .venv/bin/python _Deep_Learning/CNN_previous_way_split.py &> _Deep_Learning/LOGS/CNN_out_2026_01_16_10_30.txt
 
 import time
 from datetime import date
@@ -29,10 +29,10 @@ today = date.today()
 # print(f"\n\nCurrent working directory: {os.getcwd()}") # Current working directory: /home/silvia/Documents/GitHub/BCI_Project
 
 path = "_Deep_Learning/Models_trained/"
-Script_name = "_Deep_Learning/CNN.py"
+Script_name = "_Deep_Learning/CNN_previous_way_split.py"
 Additional_Script_name = "_Deep_Learning/Deep_Library_BCI.py"
 
-tag = "First_Try"
+tag = "First_Try_previus_way_of_split"
 now = datetime.now()
 formatted_time = now.strftime("%Y-%m-%d-%H_%M_%S")
 tag = formatted_time + "_" + tag # /home/silvia/Documents/GitHub/GAN_Prova/GAN/WGAN/tag_time 
@@ -105,7 +105,17 @@ data = data[:,:,start:end]        #  data.shape = (192, 68, 748)
 
 # y shape: (n_trials,) with negative values for Rest and positive for MI
 y = np.concatenate([-np.ones((data_2_Rest.shape[0])), np.ones((data_2_MI.shape[0]))])
+y = np.repeat(y[:,np.newaxis], repeats=n_regions,axis=1)
+# assegno valore in base a ROI, da ±1 a ±68
+for col in range(y.shape[1]):
+    y[:, col] *= (col+1)
+# data shape: (n_trials_train, n_regions, n_timepoints)
+# y shape: (n_trials_train, n_regions) ∈ {-68,...-1,+1,...,+68}
 
+data = data.reshape(-1, data.shape[-1]) # shape (n_trials*n_regions, n_timepoints)
+y = y.reshape(-1)
+# data shape: (n_trials_train * n_regions, n_timepoints)
+# y shape: (n_trials_train * n_regions,) ∈ {-68,...,-1,+1,...,+68}
 
 
 
@@ -113,13 +123,8 @@ y = np.concatenate([-np.ones((data_2_Rest.shape[0])), np.ones((data_2_MI.shape[0
 start = time.perf_counter()
 evaluated_by_regions_dataframes = []
 
-
-
 n_folds=5
 kf = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=random_seed)
-
-
-
 
 # Split - Extract windows
 # preserve balancing of data
@@ -128,8 +133,8 @@ for fold_idx, (train_idx, block_idx) in enumerate(kf.split(data, y)):
 
     X_train = data[train_idx]
     y_train = y[train_idx]
-    # X_Train shape: (n_trials_train, n_regions, n_timepoints)
-    # y_Train shape: (n_trials_train,) ∈ {-1,+1}
+    # X_Train shape: (n_trials_train*n_regions, n_timepoints)
+    # y_Train shape: (n_trials_train*n_regions) ∈ {-68..,-1,+1..,+68}
 
     X_Block = data[block_idx]
     y_Block = y[block_idx]
@@ -140,37 +145,9 @@ for fold_idx, (train_idx, block_idx) in enumerate(kf.split(data, y)):
     shuffle=True, stratify=y_Block,     # preserves label balance
     random_state=random_seed)
 
-
-    y_train = np.repeat(y_train[:,np.newaxis], repeats=n_regions,axis=1)
-    # assegno valore in base a ROI, da ±1 a ±68
-    for col in range(y_train.shape[1]):
-        y_train[:, col] *= (col+1)
-    
-    # X_Train shape: (n_trials_train, n_regions, n_timepoints)
-    # y_Train shape: (n_trials_train, n_regions) ∈ {-68,...-1,+1,...,+68}
-
-    y_val = np.repeat(y_val[:,np.newaxis], repeats=n_regions,axis=1)
-    for col in range(y_val.shape[1]):
-        y_val[:, col] *= (col+1)
-
-    y_test = np.repeat(y_test[:,np.newaxis], repeats=n_regions,axis=1)
-    for col in range(y_test.shape[1]):
-        y_test[:, col] *= (col+1)
-
-    x_train = X_train.reshape(-1, X_train.shape[-1]) # shape (n_trials*n_regions, n_timepoints)
-    x_val = X_val.reshape(-1, X_val.shape[-1])
-    x_test = X_test.reshape(-1, X_test.shape[-1])
-
-    y_train = y_train.reshape(-1)
-    y_val = y_val.reshape(-1)
-    y_test = y_test.reshape(-1)
-
-    # x_train shape: (n_trials_train * n_regions, n_timepoints)
-    # y_train shape: (n_trials_train * n_regions,) ∈ {-68,...,-1,+1,...,+68}
-
-    x_train, y_train = windowize(x_train, y_train, win_len=input_shape, shift=shift)
-    x_val, y_val     = windowize(x_val, y_val, win_len=input_shape, shift=shift)
-    x_test, y_test   = windowize(x_test, y_test, win_len=input_shape, shift=shift)
+    x_train, y_train = windowize(X_train, y_train, win_len=input_shape, shift=shift)
+    x_val, y_val     = windowize(X_val, y_val, win_len=input_shape, shift=shift)
+    x_test, y_test   = windowize(X_test, y_test, win_len=input_shape, shift=shift)
     # shape: x -> (n_windows, timepoints) ; y -> (n_windows,)
     # y is ± region index (SIGN is negative for REST and positive for MI; absolute value is region index)
 

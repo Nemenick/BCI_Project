@@ -1,11 +1,10 @@
-# nohup .venv/bin/python _Deep_Learning/CNN.py &> _Deep_Learning/LOGS/CNN_out_2026_01_16_10_30.txt
+# nohup .venv/bin/python _Deep_Learning/CNN_ori.py &> _Deep_Learning/LOGS/CNN_out_2026_01_16_10_30.txt
 
 import time
 from datetime import date
 import os
 from datetime import datetime
 import numpy as np
-from sklearn.model_selection import StratifiedKFold, train_test_split
 import tensorflow as tf
 import subprocess
 import matplotlib.pyplot as plt
@@ -16,10 +15,10 @@ from keras.callbacks import EarlyStopping
 import sys
 from Deep_Library_BCI import MultiTaskModel
 
-from Utils import (freq_filter, windowize, save_training_results, 
-                   evaluate_classification_by_region, aggregate_columns_dfs)
+from Utils import (five_folds_train_val_test, freq_filter, windowize, save_training_results, 
+                   evaluate_classification_by_region, aggregate_columns_dfs, expand_trials_to_regions)
 Normalization = "RegionWise" # "RegionWise" or "TraceWise" or "mediatrace,stdregionwise"
-from Utils import TraceWiseStandardizer, RegionWiseStandardizer
+from Utils import RegionWiseStandardizer
 
 
 sys.path.append(os.path.abspath("Codes"))
@@ -29,7 +28,7 @@ today = date.today()
 # print(f"\n\nCurrent working directory: {os.getcwd()}") # Current working directory: /home/silvia/Documents/GitHub/BCI_Project
 
 path = "_Deep_Learning/Models_trained/"
-Script_name = "_Deep_Learning/CNN.py"
+Script_name = "_Deep_Learning/CNN_ori.py"
 Additional_Script_name = "_Deep_Learning/Deep_Library_BCI.py"
 
 tag = "First_Try"
@@ -112,59 +111,16 @@ y = np.concatenate([-np.ones((data_2_Rest.shape[0])), np.ones((data_2_MI.shape[0
 ####################################################### 
 start = time.perf_counter()
 evaluated_by_regions_dataframes = []
-
-
-
-n_folds=5
-kf = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=random_seed)
-
-
-
-
 # Split - Extract windows
 # preserve balancing of data
-for fold_idx, (train_idx, block_idx) in enumerate(kf.split(data, y)):
-    split_num = fold_idx+1
-
-    X_train = data[train_idx]
-    y_train = y[train_idx]
-    # X_Train shape: (n_trials_train, n_regions, n_timepoints)
-    # y_Train shape: (n_trials_train,) ∈ {-1,+1}
-
-    X_Block = data[block_idx]
-    y_Block = y[block_idx]
-
-
-    X_val, X_test, y_val, y_test = train_test_split(
-    X_Block, y_Block, test_size=0.5,         
-    shuffle=True, stratify=y_Block,     # preserves label balance
-    random_state=random_seed)
-
-
-    y_train = np.repeat(y_train[:,np.newaxis], repeats=n_regions,axis=1)
-    # assegno valore in base a ROI, da ±1 a ±68
-    for col in range(y_train.shape[1]):
-        y_train[:, col] *= (col+1)
-    
-    # X_Train shape: (n_trials_train, n_regions, n_timepoints)
-    # y_Train shape: (n_trials_train, n_regions) ∈ {-68,...-1,+1,...,+68}
-
-    y_val = np.repeat(y_val[:,np.newaxis], repeats=n_regions,axis=1)
-    for col in range(y_val.shape[1]):
-        y_val[:, col] *= (col+1)
-
-    y_test = np.repeat(y_test[:,np.newaxis], repeats=n_regions,axis=1)
-    for col in range(y_test.shape[1]):
-        y_test[:, col] *= (col+1)
-
-    x_train = X_train.reshape(-1, X_train.shape[-1]) # shape (n_trials*n_regions, n_timepoints)
-    x_val = X_val.reshape(-1, X_val.shape[-1])
-    x_test = X_test.reshape(-1, X_test.shape[-1])
-
-    y_train = y_train.reshape(-1)
-    y_val = y_val.reshape(-1)
-    y_test = y_test.reshape(-1)
-
+for fold, (train_xy, val_xy, test_xy, train_idx) in enumerate(
+    five_folds_train_val_test(data, y, seed=random_seed)
+):  
+    split_num = fold+1
+    # train_xy = (X_train, y_train) with X_train shape (n_trials_train, n_regions, n_timepoints) and y_train shape (n_trials_train,)
+    x_train, y_train = expand_trials_to_regions(*train_xy)
+    x_val, y_val     = expand_trials_to_regions(*val_xy)
+    x_test, y_test   = expand_trials_to_regions(*test_xy)
     # x_train shape: (n_trials_train * n_regions, n_timepoints)
     # y_train shape: (n_trials_train * n_regions,) ∈ {-68,...,-1,+1,...,+68}
 
@@ -186,11 +142,6 @@ for fold_idx, (train_idx, block_idx) in enumerate(kf.split(data, y)):
     x_train = scaler.fit_transform(x_train, y_train)
     x_val = scaler.transform(x_val, y_val)
     x_test = scaler.transform(x_test, y_test)
-    # scaler = TraceWiseStandardizer()
-    # x_train = scaler.transform(x_train)
-    # x_val = scaler.transform(x_val)
-    # x_test = scaler.transform(x_test)
-
 
     # reconstruction loss: MSE
     # reconstruction metric: MSE

@@ -1,7 +1,7 @@
 import numpy as np
 import scipy.signal as sc_sig
 from numpy.lib.stride_tricks import sliding_window_view
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import StratifiedKFold, train_test_split
 import os
 import numpy as np
 import pandas as pd
@@ -38,63 +38,94 @@ def extract_windows(x, win_len=128, shift=62):
     return windows
 
 
-
-def create_labels(n_trials, n_regions=68):
-
-    # assegno negativi a quelli di prima (Rest) e positivi a quelli di dopo (MI) 
-    y = np.ones((n_trials, n_regions))
-    y[0:n_trials//2, :] = -1
-
-    # assegno valore in base a ROI, da ±1 a ±68
-    for col in range(y.shape[1]):
-        y[:, col] *= (col+1)
-    return y
-
-
-############################ Composite functions #############################
-
-
-def split_train_val_test(x, train_percentage=0.7, validation_percentage=0.15, test_percentage=0.15, seed=42):
+def expand_trials_to_regions(X, y):
     """
-    Docstring for split_train_val_test
-    
-    x: array, shape (n_trials, n_regions, n_timepoints)
-        Before Rest(0:n_trials//2), then  Motor Imagery (n_trials//2:n_trials)
-        They get NEGATIVE labels          They get POSITIVE labels
+    X: (n_trials, n_regions, n_timepoints)
+    y: (n_trials,) ∈ {-1, +1}
+
+    Returns:
+        X_out: (n_trials * n_regions, n_timepoints)
+        y_out: (n_trials * n_regions,) ∈ {-R,...,-1,+1,...,+R}
     """
-    trp = train_percentage; vp = validation_percentage; tep = test_percentage
 
-    if trp + vp + tep != 1:
-        raise ValueError("Train, validation, and test percentages must sum to 1.")
+    X = np.asarray(X)
+    y = np.asarray(y)
+
+    n_trials, n_regions, n_timepoints = X.shape
+
+    region_ids = np.arange(1, n_regions + 1)
+    region_ids = np.broadcast_to(region_ids, (n_trials, n_regions))
+    # region_ids shape: (n_trials, n_regions) [[1,2,3,...,R], [1,2,3,...,R], ...]
     
-    x = np.array(x)
-    n_trials = x.shape[0]
-    n_regions = x.shape[1]
 
-    y = create_labels(n_trials, n_regions) 
-    # shape (n_trials, n_regions) negative for Rest, positive for MI; numbered 1,2,3...n_regions per regions
+    trial_signs = y[:, None]
+    trial_signs = np.broadcast_to(trial_signs, (n_trials, n_regions))
+    # trial_signs shape: (n_trials, n_regions) [[-1,-1,-1,...,-1], [-1,-1,-1,...,-1], ... , [1,1,1,...,1]]
 
-    y = y.reshape(-1,) # da eseguire insieme al reshape dei dati
-    x = x.reshape(-1,x.shape[-1],) # shape (n_trials*n_regions, n_timepoints)
+    # y1 shape: (n_trials, n_regions);
+    # valore abs in base a ROI (column), da 1 a 68
+    # segno in base a Rest/MI (riga), - per Rest, + per MI
+    y1 = trial_signs * region_ids
 
-    X_train, X_tmp, y_train, y_tmp = train_test_split(
-    x, y,
-    test_size=1-trp,          
-    stratify=y,             # preserves label balance
-    random_state=seed,
-    shuffle=True
+    # faccio reshape "conforme" tra i due array
+    X_out = X.reshape(n_trials * n_regions, n_timepoints)
+    y_out = y1.reshape(n_trials * n_regions)
+
+    return X_out, y_out
+
+
+############################ "Composite" functions #############################
+
+
+def five_folds_train_val_test(
+    X, y,
+    val_fraction_of_block=0.5,   # 0.5 → 10% val + 10% test
+    seed=224
+):
+    """
+    Function that splits in training, validation and test sets using 5-Fold StratifiedKFold.
+    Coherent split with training of classical methods (see ../Codes/Trainings.ipynb)
+
+    X: (n_trials, n_regions, n_timepoints)      order is Rest, then MI
+    y: (n_trials,) ∈ {-1, +1}                   order is Rest, then MI
+
+    Outputs:
+    X_train: (n_trials_train, n_regions, n_timepoints)      order is Rest, then MI
+    y_train: (n_trials_train,) ∈ {-1, +1}                   order is Rest, then MI
+    . . . (same for val and test)
+
+    """
+
+    skf = StratifiedKFold(
+        n_splits=5,
+        shuffle=True,
+        random_state=seed
     )
 
+    for fold, (train_idx, block_idx) in enumerate(skf.split(X, y)):
+        
+        # sto inserendo nel training tutte le regioni relative a "quel trial"
+        X_train = X[train_idx]
+        y_train = y[train_idx]
 
-    X_val, X_test, y_val, y_test = train_test_split(
-        X_tmp, y_tmp,
-        test_size=vp/(vp+tep),         
-        stratify=y_tmp,     # preserves label balance
-        random_state=seed+179,
-        shuffle=True
-    )
+        X_block = X[block_idx]
+        y_block = y[block_idx]
 
-    return ((X_train, y_train),(X_val, y_val),(X_test, y_test))
+        # Split block into val / test
+        X_val, X_test, y_val, y_test = train_test_split(
+            X_block,
+            y_block,
+            test_size=1 - val_fraction_of_block,
+            stratify=y_block,
+            random_state=seed
+        )
+
+        yield (
+            (X_train, y_train),
+            (X_val, y_val),
+            (X_test, y_test),
+            train_idx
+        )
 
 
 def windowize(X,Y, win_len=128, shift=62):
@@ -103,7 +134,7 @@ def windowize(X,Y, win_len=128, shift=62):
     to assign the same label to all windows extracted from a single trace (trial)
     
     X: (n_traces, n_timepoints)
-    Y: (n_traces,)
+    Y: (n_traces,) (-68,-67,...,-1,1,2,...,68) sign based on Rest/MI, absolute value is region index
     win_len: timepoints of extracted windows
     shift: shift between windows (if shift < win_len, windows will overlap, desiderable for data augmentation)
     """
@@ -121,8 +152,6 @@ def windowize(X,Y, win_len=128, shift=62):
 
     return X_windowed_reshaped, Y_windowed_reshaped
 
-
-import numpy as np
 
 class RegionWiseStandardizer:
     """
@@ -198,8 +227,6 @@ class RegionWiseStandardizer:
         return self.fit(X, y).transform(X, y)
 
 
-
-
 class TraceWiseStandardizer:
 
     def __init__(self, method="zscore"):
@@ -218,7 +245,7 @@ class TraceWiseStandardizer:
         denom[denom == 0] = 1.0
         return (X - minv) / denom
 
-    def __call__(self, X):
+    def transform(self, X):
         if self.method == "zscore":
             return self.zscore_normalizer(X)
         elif self.method == "minmax":
@@ -302,7 +329,7 @@ def evaluate_classification_by_region(model, x_test, y_test, save_name=None, thr
         if len(y_true) == 0:
             continue
         row = {
-            "ROIs": [region],
+            "ROIs": region,
             "NROIs": len([region]),
             "n_windows": len(y_true),
             "Accuracy": accuracy_score(y_true, y_region_pred),
@@ -312,7 +339,7 @@ def evaluate_classification_by_region(model, x_test, y_test, save_name=None, thr
         }
 
         results.append(row)
-    df = pd.DataFrame(results).sort_values("region").reset_index(drop=True)
+    df = pd.DataFrame(results).sort_values("ROIs").reset_index(drop=True)
 
     # Save
     if save_name is not None:
@@ -323,7 +350,7 @@ def evaluate_classification_by_region(model, x_test, y_test, save_name=None, thr
     return df
     
 
-def aggregate_columns_dfs(dfs,  cols_to_aggregate=["Accuracy", "Precision", "Recall", "F1", "n_windows", "Split_seed"]
+def aggregate_columns_dfs(dfs,  cols_to_aggregate=["Accuracy", "Precision", "Recall", "F1", "n_windows"]
 ):
     """
     dfs: list of DataFrames (one per fold) [df1, df2, ...]
@@ -336,7 +363,7 @@ def aggregate_columns_dfs(dfs,  cols_to_aggregate=["Accuracy", "Precision", "Rec
     """
 
     # Use region as index for all dfs
-    dfs = [df.set_index("region") for df in dfs]
+    dfs = [df.set_index("ROIs") for df in dfs]
 
     regions = dfs[0].index
     columns = dfs[0].columns
@@ -357,3 +384,60 @@ def aggregate_columns_dfs(dfs,  cols_to_aggregate=["Accuracy", "Precision", "Rec
 
     return pd.DataFrame(aggregated_rows)
 
+
+################################ Deprecated code ################################
+
+def create_labels(n_trials, n_regions=68):
+
+    # assegno negativi a quelli di prima (Rest) e positivi a quelli di dopo (MI) 
+    y = np.ones((n_trials, n_regions))
+    y[0:n_trials//2, :] = -1
+
+    # assegno valore in base a ROI, da ±1 a ±68
+    for col in range(y.shape[1]):
+        y[:, col] *= (col+1)
+    return y
+
+
+
+def split_train_val_test(x, train_percentage=0.7, validation_percentage=0.15, test_percentage=0.15, seed=42):
+    """
+    Docstring for split_train_val_test
+    
+    x: array, shape (n_trials, n_regions, n_timepoints)
+        Before Rest(0:n_trials//2), then  Motor Imagery (n_trials//2:n_trials)
+        They get NEGATIVE labels          They get POSITIVE labels
+    """
+    trp = train_percentage; vp = validation_percentage; tep = test_percentage
+
+    if trp + vp + tep != 1:
+        raise ValueError("Train, validation, and test percentages must sum to 1.")
+    
+    x = np.array(x)
+    n_trials = x.shape[0]
+    n_regions = x.shape[1]
+
+    y = create_labels(n_trials, n_regions) 
+    # shape (n_trials, n_regions) negative for Rest, positive for MI; numbered 1,2,3...n_regions per regions
+
+    x = x.reshape(-1,x.shape[-1],) # shape (n_trials*n_regions, n_timepoints)
+    y = y.reshape(-1,) # da eseguire insieme al reshape dei dati
+
+    X_train, X_tmp, y_train, y_tmp = train_test_split(
+    x, y,
+    test_size=1-trp,          
+    stratify=y,             # preserves label balance
+    random_state=seed,
+    shuffle=True
+    )
+
+
+    X_val, X_test, y_val, y_test = train_test_split(
+        X_tmp, y_tmp,
+        test_size=vp/(vp+tep),         
+        stratify=y_tmp,     # preserves label balance
+        random_state=seed+179,
+        shuffle=True
+    )
+
+    return ((X_train, y_train),(X_val, y_val),(X_test, y_test))

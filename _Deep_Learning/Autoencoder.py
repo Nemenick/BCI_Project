@@ -1,4 +1,4 @@
-# nohup .venv/bin/python _Deep_Learning/CNN.py &> _Deep_Learning/LOGS/CNN_out_2026_01_16_10_30.txt
+# nohup .venv/bin/python _Deep_Learning/Autoencoder.py &> _Deep_Learning/LOGS/Autoencoder_out_2026_01_16_10_30.txt
 
 import time
 from datetime import date
@@ -29,10 +29,10 @@ today = date.today()
 # print(f"\n\nCurrent working directory: {os.getcwd()}") # Current working directory: /home/silvia/Documents/GitHub/BCI_Project
 
 path = "_Deep_Learning/Models_trained/"
-Script_name = "_Deep_Learning/CNN.py"
+Script_name = "_Deep_Learning/Autoencoder.py"
 Additional_Script_name = "_Deep_Learning/Deep_Library_BCI.py"
 
-tag = "First_Try"
+tag = "Autoencoder_First_Try"
 now = datetime.now()
 formatted_time = now.strftime("%Y-%m-%d-%H_%M_%S")
 tag = formatted_time + "_" + tag # /home/silvia/Documents/GitHub/GAN_Prova/GAN/WGAN/tag_time 
@@ -93,7 +93,7 @@ with open(savedir+'_Backup_script.txt', "a") as f:
 subject = 2
 DataType = "EEG"
 
-##########################################
+###################################################################################################################################
 # Read data - filter
 # TODO ATTENTION to put Rest before, then MI (for create_labels function)  
 data_2_Rest = read_subject(data_folder, DataType, "Baseline",subject)
@@ -106,23 +106,17 @@ data = data[:,:,start:end]        #  data.shape = (192, 68, 748)
 # y shape: (n_trials,) with negative values for Rest and positive for MI
 y = np.concatenate([-np.ones((data_2_Rest.shape[0])), np.ones((data_2_MI.shape[0]))])
 
+###################################################################################################################################
+# Split - Extract windows
+# preserve balancing of data
 
-
-
-####################################################### 
 start = time.perf_counter()
 evaluated_by_regions_dataframes = []
-
-
 
 n_folds=5
 kf = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=random_seed)
 
 
-
-
-# Split - Extract windows
-# preserve balancing of data
 for fold_idx, (train_idx, block_idx) in enumerate(kf.split(data, y)):
     split_num = fold_idx+1
 
@@ -176,7 +170,7 @@ for fold_idx, (train_idx, block_idx) in enumerate(kf.split(data, y)):
 
     print(f"\n\nx_train shape: {x_train.shape}, x_val shape: {x_val.shape}, x_test shape: {x_test.shape}\n\n")
 
-    ##################################################
+    ###################################################################################################################################
     # NORMALIZATION (per region?)
     # Optimizing EEG ICA Decomposition with Machine Learning: A CNN-Based Alternative to EEGLAB for Fast and Scalable Brain Activity Analysis
     # Assessing the Role of EEG Biosignal Preprocessing to Enhance Multiscale Fuzzy Entropy in Alzheimer’s Disease Detection
