@@ -132,7 +132,7 @@ class MultiTaskModel(tf.keras.Model):
         if loss_weights is None:
             loss_weights = {"reconstruction": 1.0, "classification": 1.0}
         if metric_reconstruction is None:
-            metric_reconstruction = ["mse"]
+            metric_reconstruction = ["mae"]
         if metric_classification is None:
             metric_classification = ["accuracy"]
         

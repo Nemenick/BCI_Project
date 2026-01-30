@@ -6,7 +6,8 @@ import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+from sklearn.metrics import (accuracy_score, precision_score, recall_score, f1_score,
+                             mean_squared_error, mean_absolute_error)
 
 ############################# Simple functions #############################
 
@@ -348,7 +349,53 @@ def evaluate_classification_by_region(model, x_test, y_test, save_name=None, thr
     print(f"Region-wise performance saved to {save_name}")
 
     return df
-    
+
+def evaluate_autoencoder_by_region(model, x_test, y_test, save_name=None):
+    """
+    Compute reconstruction performance grouped by abs(y_test).
+    """
+
+    # Reconstruct
+    x_recon = model.predict(x_test)
+
+    results = []
+
+    for region in np.unique(np.abs(y_test)):
+        mask = np.abs(y_test) == region
+        x_true = x_test[mask]
+        x_pred = x_recon[mask]
+
+        if len(x_true) == 0:
+            continue
+
+        # Flatten per-sample for error computation
+        x_true_f = x_true.reshape(len(x_true), -1)
+        x_pred_f = x_pred.reshape(len(x_pred), -1)
+
+        # Per-sample errors
+        mse_per_sample = np.mean((x_true_f - x_pred_f) ** 2, axis=1)
+        mae_per_sample = np.mean(np.abs(x_true_f - x_pred_f), axis=1)
+
+        row = {
+            "ROIs": region,
+            "NROIs": len([region]),
+            "n_windows": len(x_true),
+            "MSE_mean": mse_per_sample.mean(),
+            "MSE_std": mse_per_sample.std(),
+            "MAE_mean": mae_per_sample.mean(),
+            "MAE_std": mae_per_sample.std(),
+        }
+
+        results.append(row)
+
+    df = pd.DataFrame(results).sort_values("ROIs").reset_index(drop=True)
+
+    # Save
+    if save_name is not None:
+        df.to_csv(save_name, index=False)
+        print(f"Region-wise reconstruction performance saved to {save_name}")
+
+    return df 
 
 def aggregate_columns_dfs(dfs,  cols_to_aggregate=["Accuracy", "Precision", "Recall", "F1", "n_windows"]
 ):
@@ -383,6 +430,50 @@ def aggregate_columns_dfs(dfs,  cols_to_aggregate=["Accuracy", "Precision", "Rec
         aggregated_rows.append(row)
 
     return pd.DataFrame(aggregated_rows)
+
+
+def plot_random_reconstructions( model, x_test, sf=250, freqs_filt=(4, 20), n_samples=10, save_dir="reconstruction_plots", random_state=None):
+    """
+    Plot original, reconstructed, and filtered traces for random samples.
+
+    Parameters
+    ----------
+    model : keras / tf model Trained autoencoder.
+    x_test : np.ndarray  Shape: (n_samples, n_times)
+    sf : float
+        Sampling frequency.
+    """
+
+    os.makedirs(save_dir, exist_ok=True)
+
+    rng = np.random.default_rng(random_state)
+    indices = rng.choice(len(x_test), size=n_samples, replace=False)
+
+    # Pre-compute filtered signals
+    if freqs_filt is not None:
+        x_filt = freq_filter(x_test, sf=sf, freqs=list(freqs_filt), type_filter="bandpass")
+
+    lw = 2.3
+
+    for k, idx in enumerate(indices):
+        # --- reconstruction (EXACTLY like your snippet)
+        x_in = x_test[idx:idx+1]
+        x_rec = model(x_in).numpy().reshape(x_in.shape)
+
+        plt.figure(figsize=(10, 4))
+        plt.plot(x_test[idx], linewidth=lw, label="original", color="C0")
+        plt.plot(x_rec[0], linewidth=lw, label="reconstructed", color="C1")
+        plt.plot(x_filt[idx], linewidth=lw, label="filtered (4–20 Hz)", color="C2")
+
+        plt.title(f"Sample {idx}")
+        plt.xlabel("Time")
+        plt.ylabel("Amplitude")
+        plt.legend()
+        plt.tight_layout()
+
+        fname = os.path.join(save_dir, f"reconstruction_{k:02d}_idx{idx}.png")
+        plt.savefig(fname, dpi=150)
+        plt.close()
 
 
 ################################ Deprecated code ################################

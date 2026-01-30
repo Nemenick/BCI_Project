@@ -215,7 +215,7 @@ for fold_idx, (train_idx, block_idx) in enumerate(kf.split(data, y)):
 
 
     # Compute performances varying the region
-    tmp_df = evaluate_classification_by_region(model, x_test, y_test, save_name=savedir+f"region_performance_split_{split_num}.csv", threshold=0.5)
+    tmp_df = evaluate_classification_by_region(model, x_test, y_test, save_name=savedir+f"Split_{split_num}/region_performance_split_{split_num}.csv", threshold=0.5)
     tmp_df["Split_seed"] = random_seed
     tmp_df["DataType"] = DataType
     tmp_df["subject"] = subject

@@ -16,8 +16,8 @@ from keras.callbacks import EarlyStopping
 import sys
 from Deep_Library_BCI import MultiTaskModel
 
-from Utils import (freq_filter, windowize, save_training_results, 
-                   evaluate_classification_by_region, aggregate_columns_dfs)
+from Utils import (freq_filter, windowize, save_training_results, plot_random_reconstructions,
+                   evaluate_autoencoder_by_region, aggregate_columns_dfs)
 Normalization = "RegionWise" # "RegionWise" or "TraceWise" or "mediatrace,stdregionwise"
 from Utils import TraceWiseStandardizer, RegionWiseStandardizer
 
@@ -50,7 +50,7 @@ epochs = 200
 batch_monitor=35
 latent_dim = 16
 BATCH_SIZE = 512
-pazienza = 15
+pazienza = 10
 LAST_LAYER_ACTIVATION = "sigmoid"
 tanh = False
 
@@ -187,40 +187,42 @@ for fold_idx, (train_idx, block_idx) in enumerate(kf.split(data, y)):
 
 
     # reconstruction loss: MSE
-    # reconstruction metric: MSE
+    # reconstruction metric: MAE
 
     # classification loss: binary_crossentropy
     # classification metric: accuracy
 
-    model = MultiTaskModel(use_decoder=False, use_classifier=True)
+    model = MultiTaskModel(use_decoder=True, use_classifier=False)
     optimizer = optimizers.Adam(epsilon=1e-04)
-    model.compile_cases(optimizer, loss_reconstruction=None, loss_classification="binary_crossentropy")
+    model.compile_cases(optimizer, loss_reconstruction="MSE", loss_classification=None)
 
-    labels_train = (y_train > 0).astype(int)
-    labels_val = (y_val > 0).astype(int)
-    labels_test = (y_test > 0).astype(int)
+    # labels_train = (y_train > 0).astype(int)
+    # labels_val = (y_val > 0).astype(int)
+    # labels_test = (y_test > 0).astype(int)
 
-    storia = model.fit_cases(x_train, x_val, y_train=labels_train, y_val=labels_val, epochs=epochs, batch_size=BATCH_SIZE, 
-                                callbacks=EarlyStopping(monitor="val_loss", patience=pazienza,  restore_best_weights=True, start_from_epoch=50))
+    storia = model.fit_cases(x_train, x_val, epochs=epochs, batch_size=BATCH_SIZE, 
+                                callbacks=EarlyStopping(monitor="val_loss", patience=pazienza,  restore_best_weights=True, start_from_epoch=20))
     # EarlyStopping comments:
     # val_loss in multi-output monitors the total loss (weighted);
     # patience 10 is good For Classification only
+    plot_random_reconstructions(model, x_test, n_samples=10, save_dir=savedir+f"Split_{split_num}/reconstruction_plots_{split_num}")
+
     save_training_results(model, storia, savedir+f"Split_{split_num}/")
 
 
     # Compute performances varying the region
-    tmp_df = evaluate_classification_by_region(model, x_test, y_test, save_name=savedir+f"region_performance_split_{split_num}.csv", threshold=0.5)
+    tmp_df = evaluate_autoencoder_by_region(model, x_test, y_test, save_name=savedir+f"Split_{split_num}/region_performance_split_{split_num}.csv")
     tmp_df["Split_seed"] = random_seed
     tmp_df["DataType"] = DataType
     tmp_df["subject"] = subject
-    tmp_df["Classifier"] = "MLP"
-    tmp_df["Features"] = "CNN_extracted"
+    tmp_df["Features"] = "Autoencoder_extracted"
     tmp_df["Comments"] = "-"
     tmp_df["Date"] = today
     tmp_df["WindowsNormalization"] = Normalization
     evaluated_by_regions_dataframes.append(tmp_df)
 
-aggregated_df = aggregate_columns_dfs(evaluated_by_regions_dataframes)
+aggregated_df = aggregate_columns_dfs(evaluated_by_regions_dataframes, cols_to_aggregate=["n_windows", "MSE_mean", "MSE_std", "MAE_mean", "MAE_std"])
 aggregated_df.to_pickle(f"{savedir}aggregated_region_performance.pkl")
 
 print("\n\n\nTEMPOO per 5 folds", time.perf_counter()-start, "\n\n\n")
+
