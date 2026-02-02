@@ -459,6 +459,9 @@ def plot_random_reconstructions( model, x_test, sf=250, freqs_filt=(4, 20), n_sa
         # --- reconstruction (EXACTLY like your snippet)
         x_in = x_test[idx:idx+1]
         x_rec = model(x_in).numpy().reshape(x_in.shape)
+        fname = os.path.join(save_dir, f"reconstruction_{k:02d}_idx{idx}.png")
+        with open(fname, "w") as f: 
+            f.write("*\n")
 
         plt.figure(figsize=(10, 4))
         plt.plot(x_test[idx], linewidth=lw, label="original", color="C0")
