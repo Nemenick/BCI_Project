@@ -24,6 +24,9 @@ from Utils import (freq_filter, windowize, save_training_results,
 Normalization = "RegionWise" # "RegionWise" or "TraceWise" or "mediatrace,stdregionwise"
 from Utils import TraceWiseStandardizer, RegionWiseStandardizer
 
+Interesting_right =   [5, 33, 45, 49]
+Interesting_left =   [4, 32, 44, 48]
+Interesting_regions = Interesting_left + Interesting_right
 
 
 from BCI_Library import read_subject
@@ -57,7 +60,7 @@ pazienza = 15
 LAST_LAYER_ACTIVATION = "sigmoid"
 tanh = False
 
-n_regions = 68
+n_regions = 8
 random_seed = 224
 
 try:
