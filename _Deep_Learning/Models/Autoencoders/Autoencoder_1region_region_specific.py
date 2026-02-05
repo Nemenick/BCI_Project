@@ -221,7 +221,7 @@ for regione_selezionata in selected_regions:
         # EarlyStopping comments:
         # val_loss in multi-output monitors the total loss (weighted);
         # patience 10 is good For Classification only
-        plot_random_reconstructions(model, x_test, n_samples=10, save_dir=savedir+f"Split_{split_num}/Region_{regione_selezionata}/reconstruction_plots_{split_num}")
+        plot_random_reconstructions(model, x_test[:,:,0], n_samples=10, save_dir=savedir+f"Split_{split_num}/Region_{regione_selezionata}/reconstruction_plots_{split_num}")
 
         save_training_results(model, storia, savedir+f"Split_{split_num}/Region_{regione_selezionata}/")
 

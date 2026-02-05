@@ -444,7 +444,7 @@ def saveresults_pickle(new_rows, inputfile=None, outputfile=None, backup=True, r
     if outputfile is None:
         outputfile = inputfile
     if outputfile is None:
-        outputfile = "BCI_Performances.pkl"
+        outputfile = "BCI_Performances_default.pkl"
         print(f"No input or output file specified, saving to a default file")
 
     while outputfile != inputfile and os.path.exists(outputfile):

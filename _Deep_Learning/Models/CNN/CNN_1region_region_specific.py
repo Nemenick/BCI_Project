@@ -21,8 +21,8 @@ import sys
 sys.path.append(os.path.abspath("Codes"))
 sys.path.append(os.path.abspath("_Deep_Learning"))
 
-from Utils import (freq_filter, windowize, save_training_results, plot_random_reconstructions,
-                   evaluate_autoencoder_by_region, aggregate_columns_dfs)
+from Utils import (freq_filter, windowize, save_training_results,
+                   evaluate_classification_by_region, aggregate_columns_dfs)
 Normalization = "TraceWise" # "RegionWise" or "TraceWise" or "mediatrace,stdregionwise"
 from Utils import TraceWiseStandardizer, RegionWiseStandardizer
 
@@ -229,7 +229,7 @@ for regione_selezionata in selected_regions:
 
 
         # Compute performances varying the region
-        tmp_df = evaluate_autoencoder_by_region(model, x_test, y_test, save_name=savedir+f"Split_{split_num}/Region_{regione_selezionata}/region_performance_split_{split_num}.csv")
+        tmp_df = evaluate_classification_by_region(model, x_test, y_test, save_name=savedir+f"Split_{split_num}/Region_{regione_selezionata}/region_performance_split_{split_num}.csv")
         tmp_df["Split_seed"] = random_seed
         tmp_df["DataType"] = DataType
         tmp_df["subject"] = subject

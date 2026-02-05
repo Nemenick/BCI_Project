@@ -1,0 +1,513 @@
+nohup: ignoring input
+2026-02-04 20:53:28.030020: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2026-02-04 20:53:28.081305: I tensorflow/core/platform/cpu_feature_guard.cc:210] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 AVX512F AVX512_VNNI FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+2026-02-04 20:53:29.348772: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1770234813.738107 2048336 gpu_device.cc:2020] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 6821 MB memory:  -> device: 0, name: Quadro RTX 4000, pci bus id: 0000:5b:00.0, compute capability: 7.5
+2026-02-04 20:53:38.115663: I external/local_xla/xla/service/service.cc:163] XLA service 0x7ff7680056c0 initialized for platform CUDA (this does not guarantee that XLA will be used). Devices:
+2026-02-04 20:53:38.115736: I external/local_xla/xla/service/service.cc:171]   StreamExecutor device (0): Quadro RTX 4000, Compute Capability 7.5
+2026-02-04 20:53:38.232030: I tensorflow/compiler/mlir/tensorflow/utils/dump_mlir_util.cc:269] disabling MLIR crash reproducer, set env var `MLIR_CRASH_REPRODUCER_DIRECTORY` to enable.
+2026-02-04 20:53:38.778244: I external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:473] Loaded cuDNN version 91800
+2026-02-04 20:53:39.941854: W external/local_xla/xla/tsl/framework/bfc_allocator.cc:382] Garbage collection: deallocate free memory regions (i.e., allocations) so that we can re-allocate a larger region to avoid OOM due to memory fragmentation. If you see this message frequently, you are running near the threshold of the available device memory and re-allocation may incur great performance overhead. You may try smaller batch sizes to observe the performance impact. Set TF_ENABLE_GPU_GARBAGE_COLLECTION=false if you'd like to disable this feature.
+I0000 00:00:1770234825.604462 2048671 device_compiler.h:196] Compiled cluster using XLA!  This line is logged at most once for the lifetime of the process.
+
+
+x_train shape: (1683, 128), x_val shape: (209, 128), x_test shape: (220, 128)
+
+
+[1m1/4[0m [32m━━━━━[0m[37m━━━━━━━━━━━━━━━[0m [1m31s[0m 10s/step - accuracy: 0.4961 - loss: 0.9030[1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 2s/step - accuracy: 0.4874 - loss: 1.0048  [1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m17s[0m 2s/step - accuracy: 0.4843 - loss: 1.0158 - val_accuracy: 0.4545 - val_loss: 0.6967
+Model weights saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_1/Region_4/model.weights.h5
+History saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_1/Region_4/history.csv
+Plots saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_1/Region_4/
+[1m1/7[0m [32m━━[0m[37m━━━━━━━━━━━━━━━━━━[0m [1m4s[0m 829ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 140ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m2s[0m 147ms/step
+Region-wise performance saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_1/Region_4/region_performance_split_1.csv
+
+
+x_train shape: (1683, 128), x_val shape: (209, 128), x_test shape: (220, 128)
+
+
+[1m1/4[0m [32m━━━━━[0m[37m━━━━━━━━━━━━━━━[0m [1m23s[0m 8s/step - accuracy: 0.4922 - loss: 0.9816[1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 2s/step - accuracy: 0.5130 - loss: 0.9938 [1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m14s[0m 2s/step - accuracy: 0.5181 - loss: 0.9917 - val_accuracy: 0.5407 - val_loss: 0.6862
+Model weights saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_2/Region_4/model.weights.h5
+History saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_2/Region_4/history.csv
+Plots saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_2/Region_4/
+[1m1/7[0m [32m━━[0m[37m━━━━━━━━━━━━━━━━━━[0m [1m3s[0m 641ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 113ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m1s[0m 120ms/step
+WARNING:tensorflow:5 out of the last 11 calls to <function TensorFlowTrainer._make_function.<locals>.multi_step_on_iterator at 0x7ff8301e91c0> triggered tf.function retracing. Tracing is expensive and the excessive number of tracings could be due to (1) creating @tf.function repeatedly in a loop, (2) passing tensors with different shapes, (3) passing Python objects instead of tensors. For (1), please define your @tf.function outside of the loop. For (2), @tf.function has reduce_retracing=True option that can avoid unnecessary retracing. For (3), please refer to https://www.tensorflow.org/guide/function#controlling_retracing and https://www.tensorflow.org/api_docs/python/tf/function for  more details.
+Region-wise performance saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_2/Region_4/region_performance_split_2.csv
+
+
+x_train shape: (1694, 128), x_val shape: (209, 128), x_test shape: (209, 128)
+
+
+[1m1/4[0m [32m━━━━━[0m[37m━━━━━━━━━━━━━━━[0m [1m22s[0m 8s/step - accuracy: 0.5059 - loss: 0.8672[1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 2s/step - accuracy: 0.4977 - loss: 1.0306 WARNING:tensorflow:5 out of the last 11 calls to <function TensorFlowTrainer._make_function.<locals>.multi_step_on_iterator at 0x7ff7c46a3100> triggered tf.function retracing. Tracing is expensive and the excessive number of tracings could be due to (1) creating @tf.function repeatedly in a loop, (2) passing tensors with different shapes, (3) passing Python objects instead of tensors. For (1), please define your @tf.function outside of the loop. For (2), @tf.function has reduce_retracing=True option that can avoid unnecessary retracing. For (3), please refer to https://www.tensorflow.org/guide/function#controlling_retracing and https://www.tensorflow.org/api_docs/python/tf/function for  more details.
+[1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m14s[0m 2s/step - accuracy: 0.4935 - loss: 1.0552 - val_accuracy: 0.4880 - val_loss: 0.6940
+WARNING:tensorflow:5 out of the last 15 calls to <function TensorFlowTrainer.make_predict_function.<locals>.one_step_on_data_distributed at 0x7ff7c4304220> triggered tf.function retracing. Tracing is expensive and the excessive number of tracings could be due to (1) creating @tf.function repeatedly in a loop, (2) passing tensors with different shapes, (3) passing Python objects instead of tensors. For (1), please define your @tf.function outside of the loop. For (2), @tf.function has reduce_retracing=True option that can avoid unnecessary retracing. For (3), please refer to https://www.tensorflow.org/guide/function#controlling_retracing and https://www.tensorflow.org/api_docs/python/tf/function for  more details.
+Model weights saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_3/Region_4/model.weights.h5
+History saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_3/Region_4/history.csv
+Plots saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_3/Region_4/
+[1m1/7[0m [32m━━[0m[37m━━━━━━━━━━━━━━━━━━[0m [1m6s[0m 1s/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 149ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m2s[0m 155ms/step
+Region-wise performance saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_3/Region_4/region_performance_split_3.csv
+
+
+x_train shape: (1694, 128), x_val shape: (209, 128), x_test shape: (209, 128)
+
+
+[1m1/4[0m [32m━━━━━[0m[37m━━━━━━━━━━━━━━━[0m [1m23s[0m 8s/step - accuracy: 0.5039 - loss: 0.8842[1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 2s/step - accuracy: 0.4983 - loss: 0.9079 [1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m14s[0m 2s/step - accuracy: 0.4923 - loss: 0.9337 - val_accuracy: 0.4833 - val_loss: 0.6927
+WARNING:tensorflow:5 out of the last 15 calls to <function TensorFlowTrainer.make_predict_function.<locals>.one_step_on_data_distributed at 0x7ff7c41cc2c0> triggered tf.function retracing. Tracing is expensive and the excessive number of tracings could be due to (1) creating @tf.function repeatedly in a loop, (2) passing tensors with different shapes, (3) passing Python objects instead of tensors. For (1), please define your @tf.function outside of the loop. For (2), @tf.function has reduce_retracing=True option that can avoid unnecessary retracing. For (3), please refer to https://www.tensorflow.org/guide/function#controlling_retracing and https://www.tensorflow.org/api_docs/python/tf/function for  more details.
+Model weights saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_4/Region_4/model.weights.h5
+History saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_4/Region_4/history.csv
+Plots saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_4/Region_4/
+[1m1/7[0m [32m━━[0m[37m━━━━━━━━━━━━━━━━━━[0m [1m4s[0m 668ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 111ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m1s[0m 118ms/step
+Region-wise performance saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_4/Region_4/region_performance_split_4.csv
+
+
+x_train shape: (1694, 128), x_val shape: (209, 128), x_test shape: (209, 128)
+
+
+[1m1/4[0m [32m━━━━━[0m[37m━━━━━━━━━━━━━━━[0m [1m23s[0m 8s/step - accuracy: 0.4961 - loss: 0.9115[1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 2s/step - accuracy: 0.4915 - loss: 0.9836 [1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m14s[0m 2s/step - accuracy: 0.4982 - loss: 0.9762 - val_accuracy: 0.5646 - val_loss: 0.6905
+Model weights saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_5/Region_4/model.weights.h5
+History saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_5/Region_4/history.csv
+Plots saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_5/Region_4/
+[1m1/7[0m [32m━━[0m[37m━━━━━━━━━━━━━━━━━━[0m [1m3s[0m 640ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 111ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m1s[0m 116ms/step
+Region-wise performance saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_5/Region_4/region_performance_split_5.csv
+
+
+
+TEMPOO per 5 folds 87.06413588102441 
+
+
+
+
+
+x_train shape: (1683, 128), x_val shape: (209, 128), x_test shape: (220, 128)
+
+
+[1m1/4[0m [32m━━━━━[0m[37m━━━━━━━━━━━━━━━[0m [1m24s[0m 8s/step - accuracy: 0.4688 - loss: 0.9082[1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 2s/step - accuracy: 0.4798 - loss: 0.9865 [1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m14s[0m 2s/step - accuracy: 0.4932 - loss: 0.9813 - val_accuracy: 0.5024 - val_loss: 0.6931
+Model weights saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_1/Region_5/model.weights.h5
+History saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_1/Region_5/history.csv
+Plots saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_1/Region_5/
+[1m1/7[0m [32m━━[0m[37m━━━━━━━━━━━━━━━━━━[0m [1m4s[0m 683ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 115ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m1s[0m 120ms/step
+Region-wise performance saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_1/Region_5/region_performance_split_1.csv
+
+
+x_train shape: (1683, 128), x_val shape: (209, 128), x_test shape: (220, 128)
+
+
+[1m1/4[0m [32m━━━━━[0m[37m━━━━━━━━━━━━━━━[0m [1m23s[0m 8s/step - accuracy: 0.4941 - loss: 0.8829[1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 2s/step - accuracy: 0.4954 - loss: 0.9671 [1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m14s[0m 2s/step - accuracy: 0.5003 - loss: 0.9729 - val_accuracy: 0.5024 - val_loss: 0.6945
+Model weights saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_2/Region_5/model.weights.h5
+History saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_2/Region_5/history.csv
+Plots saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_2/Region_5/
+[1m1/7[0m [32m━━[0m[37m━━━━━━━━━━━━━━━━━━[0m [1m4s[0m 680ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 113ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m1s[0m 119ms/step
+Region-wise performance saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_2/Region_5/region_performance_split_2.csv
+
+
+x_train shape: (1694, 128), x_val shape: (209, 128), x_test shape: (209, 128)
+
+
+[1m1/4[0m [32m━━━━━[0m[37m━━━━━━━━━━━━━━━[0m [1m23s[0m 8s/step - accuracy: 0.4766 - loss: 1.0376[1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 2s/step - accuracy: 0.4851 - loss: 1.1303 [1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m14s[0m 2s/step - accuracy: 0.4929 - loss: 1.1074 - val_accuracy: 0.5263 - val_loss: 0.7027
+Model weights saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_3/Region_5/model.weights.h5
+History saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_3/Region_5/history.csv
+Plots saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_3/Region_5/
+[1m1/7[0m [32m━━[0m[37m━━━━━━━━━━━━━━━━━━[0m [1m3s[0m 638ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 112ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m1s[0m 119ms/step
+Region-wise performance saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_3/Region_5/region_performance_split_3.csv
+
+
+x_train shape: (1694, 128), x_val shape: (209, 128), x_test shape: (209, 128)
+
+
+[1m1/4[0m [32m━━━━━[0m[37m━━━━━━━━━━━━━━━[0m [1m25s[0m 8s/step - accuracy: 0.5273 - loss: 0.9946[1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 2s/step - accuracy: 0.5185 - loss: 0.9698 [1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m15s[0m 2s/step - accuracy: 0.5112 - loss: 0.9509 - val_accuracy: 0.5215 - val_loss: 0.6894
+Model weights saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_4/Region_5/model.weights.h5
+History saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_4/Region_5/history.csv
+Plots saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_4/Region_5/
+[1m1/7[0m [32m━━[0m[37m━━━━━━━━━━━━━━━━━━[0m [1m3s[0m 654ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 117ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m1s[0m 124ms/step
+Region-wise performance saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_4/Region_5/region_performance_split_4.csv
+
+
+x_train shape: (1694, 128), x_val shape: (209, 128), x_test shape: (209, 128)
+
+
+[1m1/4[0m [32m━━━━━[0m[37m━━━━━━━━━━━━━━━[0m [1m23s[0m 8s/step - accuracy: 0.5195 - loss: 0.8860[1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 2s/step - accuracy: 0.5214 - loss: 0.9107 [1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m14s[0m 2s/step - accuracy: 0.5201 - loss: 0.9057 - val_accuracy: 0.5263 - val_loss: 0.6913
+Model weights saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_5/Region_5/model.weights.h5
+History saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_5/Region_5/history.csv
+Plots saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_5/Region_5/
+[1m1/7[0m [32m━━[0m[37m━━━━━━━━━━━━━━━━━━[0m [1m4s[0m 673ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 119ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m1s[0m 126ms/step
+Region-wise performance saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_5/Region_5/region_performance_split_5.csv
+
+
+
+TEMPOO per 5 folds 82.2902995160548 
+
+
+
+
+
+x_train shape: (1683, 128), x_val shape: (209, 128), x_test shape: (220, 128)
+
+
+[1m1/4[0m [32m━━━━━[0m[37m━━━━━━━━━━━━━━━[0m [1m23s[0m 8s/step - accuracy: 0.4766 - loss: 1.0399[1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 2s/step - accuracy: 0.4867 - loss: 1.0513 [1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m14s[0m 2s/step - accuracy: 0.4961 - loss: 1.0225 - val_accuracy: 0.5263 - val_loss: 0.6920
+Model weights saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_1/Region_32/model.weights.h5
+History saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_1/Region_32/history.csv
+Plots saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_1/Region_32/
+[1m1/7[0m [32m━━[0m[37m━━━━━━━━━━━━━━━━━━[0m [1m4s[0m 670ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 113ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m1s[0m 119ms/step
+Region-wise performance saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_1/Region_32/region_performance_split_1.csv
+
+
+x_train shape: (1683, 128), x_val shape: (209, 128), x_test shape: (220, 128)
+
+
+[1m1/4[0m [32m━━━━━[0m[37m━━━━━━━━━━━━━━━[0m [1m23s[0m 8s/step - accuracy: 0.4922 - loss: 0.9795[1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 2s/step - accuracy: 0.5024 - loss: 0.9842 [1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m14s[0m 2s/step - accuracy: 0.5074 - loss: 0.9656 - val_accuracy: 0.5120 - val_loss: 0.6911
+Model weights saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_2/Region_32/model.weights.h5
+History saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_2/Region_32/history.csv
+Plots saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_2/Region_32/
+[1m1/7[0m [32m━━[0m[37m━━━━━━━━━━━━━━━━━━[0m [1m4s[0m 707ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 116ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m1s[0m 123ms/step
+Region-wise performance saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_2/Region_32/region_performance_split_2.csv
+
+
+x_train shape: (1694, 128), x_val shape: (209, 128), x_test shape: (209, 128)
+
+
+[1m1/4[0m [32m━━━━━[0m[37m━━━━━━━━━━━━━━━[0m [1m23s[0m 8s/step - accuracy: 0.5020 - loss: 0.8583[1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 2s/step - accuracy: 0.5079 - loss: 0.9090 [1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m14s[0m 2s/step - accuracy: 0.5142 - loss: 0.9177 - val_accuracy: 0.5311 - val_loss: 0.6926
+Model weights saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_3/Region_32/model.weights.h5
+History saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_3/Region_32/history.csv
+Plots saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_3/Region_32/
+[1m1/7[0m [32m━━[0m[37m━━━━━━━━━━━━━━━━━━[0m [1m3s[0m 643ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 112ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m1s[0m 118ms/step
+Region-wise performance saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_3/Region_32/region_performance_split_3.csv
+
+
+x_train shape: (1694, 128), x_val shape: (209, 128), x_test shape: (209, 128)
+
+
+[1m1/4[0m [32m━━━━━[0m[37m━━━━━━━━━━━━━━━[0m [1m24s[0m 8s/step - accuracy: 0.5117 - loss: 0.8412[1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 2s/step - accuracy: 0.5045 - loss: 0.9110 [1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m14s[0m 2s/step - accuracy: 0.5041 - loss: 0.9154 - val_accuracy: 0.5263 - val_loss: 0.6904
+Model weights saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_4/Region_32/model.weights.h5
+History saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_4/Region_32/history.csv
+Plots saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_4/Region_32/
+[1m1/7[0m [32m━━[0m[37m━━━━━━━━━━━━━━━━━━[0m [1m4s[0m 683ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 115ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m1s[0m 122ms/step
+Region-wise performance saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_4/Region_32/region_performance_split_4.csv
+
+
+x_train shape: (1694, 128), x_val shape: (209, 128), x_test shape: (209, 128)
+
+
+[1m1/4[0m [32m━━━━━[0m[37m━━━━━━━━━━━━━━━[0m [1m24s[0m 8s/step - accuracy: 0.4863 - loss: 0.9171[1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 2s/step - accuracy: 0.4900 - loss: 1.0044 [1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m14s[0m 2s/step - accuracy: 0.4953 - loss: 1.0078 - val_accuracy: 0.5263 - val_loss: 0.6883
+Model weights saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_5/Region_32/model.weights.h5
+History saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_5/Region_32/history.csv
+Plots saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_5/Region_32/
+[1m1/7[0m [32m━━[0m[37m━━━━━━━━━━━━━━━━━━[0m [1m3s[0m 633ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 116ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m1s[0m 123ms/step
+Region-wise performance saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_5/Region_32/region_performance_split_5.csv
+
+
+
+TEMPOO per 5 folds 82.20200851501431 
+
+
+
+
+
+x_train shape: (1683, 128), x_val shape: (209, 128), x_test shape: (220, 128)
+
+
+[1m1/4[0m [32m━━━━━[0m[37m━━━━━━━━━━━━━━━[0m [1m23s[0m 8s/step - accuracy: 0.5234 - loss: 0.8640[1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 2s/step - accuracy: 0.5045 - loss: 0.9076 [1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m14s[0m 2s/step - accuracy: 0.4973 - loss: 0.9211 - val_accuracy: 0.4737 - val_loss: 0.6972
+Model weights saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_1/Region_33/model.weights.h5
+History saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_1/Region_33/history.csv
+Plots saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_1/Region_33/
+[1m1/7[0m [32m━━[0m[37m━━━━━━━━━━━━━━━━━━[0m [1m3s[0m 644ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 114ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m1s[0m 121ms/step
+Region-wise performance saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_1/Region_33/region_performance_split_1.csv
+
+
+x_train shape: (1683, 128), x_val shape: (209, 128), x_test shape: (220, 128)
+
+
+[1m1/4[0m [32m━━━━━[0m[37m━━━━━━━━━━━━━━━[0m [1m22s[0m 8s/step - accuracy: 0.5332 - loss: 0.8291[1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 2s/step - accuracy: 0.5021 - loss: 1.0331 [1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m14s[0m 2s/step - accuracy: 0.4896 - loss: 1.0773 - val_accuracy: 0.5167 - val_loss: 0.6927
+Model weights saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_2/Region_33/model.weights.h5
+History saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_2/Region_33/history.csv
+Plots saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_2/Region_33/
+[1m1/7[0m [32m━━[0m[37m━━━━━━━━━━━━━━━━━━[0m [1m4s[0m 691ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 109ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m1s[0m 115ms/step
+Region-wise performance saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_2/Region_33/region_performance_split_2.csv
+
+
+x_train shape: (1694, 128), x_val shape: (209, 128), x_test shape: (209, 128)
+
+
+[1m1/4[0m [32m━━━━━[0m[37m━━━━━━━━━━━━━━━[0m [1m23s[0m 8s/step - accuracy: 0.5098 - loss: 1.1159[1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 2s/step - accuracy: 0.5049 - loss: 1.1200 [1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m14s[0m 2s/step - accuracy: 0.5077 - loss: 1.0814 - val_accuracy: 0.5598 - val_loss: 0.6874
+Model weights saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_3/Region_33/model.weights.h5
+History saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_3/Region_33/history.csv
+Plots saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_3/Region_33/
+[1m1/7[0m [32m━━[0m[37m━━━━━━━━━━━━━━━━━━[0m [1m4s[0m 700ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 114ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m1s[0m 121ms/step
+Region-wise performance saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_3/Region_33/region_performance_split_3.csv
+
+
+x_train shape: (1694, 128), x_val shape: (209, 128), x_test shape: (209, 128)
+
+
+[1m1/4[0m [32m━━━━━[0m[37m━━━━━━━━━━━━━━━[0m [1m24s[0m 8s/step - accuracy: 0.5234 - loss: 0.9109[1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 2s/step - accuracy: 0.5248 - loss: 0.9483 [1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m14s[0m 2s/step - accuracy: 0.5183 - loss: 0.9525 - val_accuracy: 0.5359 - val_loss: 0.6857
+Model weights saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_4/Region_33/model.weights.h5
+History saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_4/Region_33/history.csv
+Plots saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_4/Region_33/
+[1m1/7[0m [32m━━[0m[37m━━━━━━━━━━━━━━━━━━[0m [1m3s[0m 657ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 116ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m1s[0m 123ms/step
+Region-wise performance saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_4/Region_33/region_performance_split_4.csv
+
+
+x_train shape: (1694, 128), x_val shape: (209, 128), x_test shape: (209, 128)
+
+
+[1m1/4[0m [32m━━━━━[0m[37m━━━━━━━━━━━━━━━[0m [1m23s[0m 8s/step - accuracy: 0.4805 - loss: 0.8109[1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 2s/step - accuracy: 0.4793 - loss: 0.8404 [1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m14s[0m 2s/step - accuracy: 0.4835 - loss: 0.8431 - val_accuracy: 0.5215 - val_loss: 0.6876
+Model weights saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_5/Region_33/model.weights.h5
+History saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_5/Region_33/history.csv
+Plots saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_5/Region_33/
+[1m1/7[0m [32m━━[0m[37m━━━━━━━━━━━━━━━━━━[0m [1m4s[0m 671ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 112ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m1s[0m 119ms/step
+Region-wise performance saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_5/Region_33/region_performance_split_5.csv
+
+
+
+TEMPOO per 5 folds 82.65712369896937 
+
+
+
+
+
+x_train shape: (1683, 128), x_val shape: (209, 128), x_test shape: (220, 128)
+
+
+[1m1/4[0m [32m━━━━━[0m[37m━━━━━━━━━━━━━━━[0m [1m26s[0m 9s/step - accuracy: 0.4922 - loss: 0.9550[1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 2s/step - accuracy: 0.4916 - loss: 0.9865 [1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m15s[0m 2s/step - accuracy: 0.4902 - loss: 0.9729 - val_accuracy: 0.4833 - val_loss: 0.7000
+Model weights saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_1/Region_44/model.weights.h5
+History saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_1/Region_44/history.csv
+Plots saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_1/Region_44/
+[1m1/7[0m [32m━━[0m[37m━━━━━━━━━━━━━━━━━━[0m [1m4s[0m 683ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 112ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m1s[0m 119ms/step
+Region-wise performance saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_1/Region_44/region_performance_split_1.csv
+
+
+x_train shape: (1683, 128), x_val shape: (209, 128), x_test shape: (220, 128)
+
+
+[1m1/4[0m [32m━━━━━[0m[37m━━━━━━━━━━━━━━━[0m [1m25s[0m 8s/step - accuracy: 0.5078 - loss: 0.7976[1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 2s/step - accuracy: 0.5134 - loss: 0.8318 [1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m15s[0m 2s/step - accuracy: 0.5199 - loss: 0.8302 - val_accuracy: 0.5263 - val_loss: 0.6914
+Model weights saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_2/Region_44/model.weights.h5
+History saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_2/Region_44/history.csv
+Plots saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_2/Region_44/
+[1m1/7[0m [32m━━[0m[37m━━━━━━━━━━━━━━━━━━[0m [1m4s[0m 679ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 114ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m1s[0m 121ms/step
+Region-wise performance saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_2/Region_44/region_performance_split_2.csv
+
+
+x_train shape: (1694, 128), x_val shape: (209, 128), x_test shape: (209, 128)
+
+
+[1m1/4[0m [32m━━━━━[0m[37m━━━━━━━━━━━━━━━[0m [1m23s[0m 8s/step - accuracy: 0.5078 - loss: 0.9468[1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 2s/step - accuracy: 0.5090 - loss: 0.9639 [1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m14s[0m 2s/step - accuracy: 0.5053 - loss: 0.9555 - val_accuracy: 0.5263 - val_loss: 0.6963
+Model weights saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_3/Region_44/model.weights.h5
+History saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_3/Region_44/history.csv
+Plots saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_3/Region_44/
+[1m1/7[0m [32m━━[0m[37m━━━━━━━━━━━━━━━━━━[0m [1m3s[0m 644ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 113ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m1s[0m 119ms/step
+Region-wise performance saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_3/Region_44/region_performance_split_3.csv
+
+
+x_train shape: (1694, 128), x_val shape: (209, 128), x_test shape: (209, 128)
+
+
+[1m1/4[0m [32m━━━━━[0m[37m━━━━━━━━━━━━━━━[0m [1m23s[0m 8s/step - accuracy: 0.5039 - loss: 1.0280[1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 2s/step - accuracy: 0.4971 - loss: 1.2603 [1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m14s[0m 2s/step - accuracy: 0.4941 - loss: 1.2921 - val_accuracy: 0.4737 - val_loss: 0.7100
+Model weights saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_4/Region_44/model.weights.h5
+History saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_4/Region_44/history.csv
+Plots saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_4/Region_44/
+[1m1/7[0m [32m━━[0m[37m━━━━━━━━━━━━━━━━━━[0m [1m3s[0m 640ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 110ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m1s[0m 117ms/step
+Region-wise performance saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_4/Region_44/region_performance_split_4.csv
+
+
+x_train shape: (1694, 128), x_val shape: (209, 128), x_test shape: (209, 128)
+
+
+[1m1/4[0m [32m━━━━━[0m[37m━━━━━━━━━━━━━━━[0m [1m23s[0m 8s/step - accuracy: 0.5156 - loss: 0.9237[1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 2s/step - accuracy: 0.5191 - loss: 1.0651 [1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m14s[0m 2s/step - accuracy: 0.5213 - loss: 1.0728 - val_accuracy: 0.4737 - val_loss: 0.6940
+Model weights saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_5/Region_44/model.weights.h5
+History saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_5/Region_44/history.csv
+Plots saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_5/Region_44/
+[1m1/7[0m [32m━━[0m[37m━━━━━━━━━━━━━━━━━━[0m [1m4s[0m 691ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 112ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m1s[0m 119ms/step
+Region-wise performance saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_5/Region_44/region_performance_split_5.csv
+
+
+
+TEMPOO per 5 folds 82.57693835895043 
+
+
+
+
+
+x_train shape: (1683, 128), x_val shape: (209, 128), x_test shape: (220, 128)
+
+
+[1m1/4[0m [32m━━━━━[0m[37m━━━━━━━━━━━━━━━[0m [1m23s[0m 8s/step - accuracy: 0.5117 - loss: 0.8535[1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 2s/step - accuracy: 0.5116 - loss: 0.9034 [1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m14s[0m 2s/step - accuracy: 0.5146 - loss: 0.9053 - val_accuracy: 0.5024 - val_loss: 0.6948
+Model weights saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_1/Region_45/model.weights.h5
+History saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_1/Region_45/history.csv
+Plots saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_1/Region_45/
+[1m1/7[0m [32m━━[0m[37m━━━━━━━━━━━━━━━━━━[0m [1m4s[0m 684ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 114ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m1s[0m 120ms/step
+Region-wise performance saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_1/Region_45/region_performance_split_1.csv
+
+
+x_train shape: (1683, 128), x_val shape: (209, 128), x_test shape: (220, 128)
+
+
+[1m1/4[0m [32m━━━━━[0m[37m━━━━━━━━━━━━━━━[0m [1m26s[0m 9s/step - accuracy: 0.4824 - loss: 1.4032[1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 2s/step - accuracy: 0.4906 - loss: 1.3499 [1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m15s[0m 2s/step - accuracy: 0.4944 - loss: 1.3152 - val_accuracy: 0.5167 - val_loss: 0.6924
+Model weights saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_2/Region_45/model.weights.h5
+History saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_2/Region_45/history.csv
+Plots saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_2/Region_45/
+[1m1/7[0m [32m━━[0m[37m━━━━━━━━━━━━━━━━━━[0m [1m3s[0m 666ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 114ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m1s[0m 122ms/step
+Region-wise performance saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_2/Region_45/region_performance_split_2.csv
+
+
+x_train shape: (1694, 128), x_val shape: (209, 128), x_test shape: (209, 128)
+
+
+[1m1/4[0m [32m━━━━━[0m[37m━━━━━━━━━━━━━━━[0m [1m23s[0m 8s/step - accuracy: 0.5039 - loss: 0.8795[1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 2s/step - accuracy: 0.5177 - loss: 0.9514 [1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m14s[0m 2s/step - accuracy: 0.5254 - loss: 0.9495 - val_accuracy: 0.4976 - val_loss: 0.6948
+Model weights saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_3/Region_45/model.weights.h5
+History saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_3/Region_45/history.csv
+Plots saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_3/Region_45/
+[1m1/7[0m [32m━━[0m[37m━━━━━━━━━━━━━━━━━━[0m [1m4s[0m 671ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 114ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m1s[0m 121ms/step
+Region-wise performance saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_3/Region_45/region_performance_split_3.csv
+
+
+x_train shape: (1694, 128), x_val shape: (209, 128), x_test shape: (209, 128)
+
+
+[1m1/4[0m [32m━━━━━[0m[37m━━━━━━━━━━━━━━━[0m [1m22s[0m 8s/step - accuracy: 0.4668 - loss: 1.0328[1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 2s/step - accuracy: 0.4794 - loss: 1.1706 [1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m14s[0m 2s/step - accuracy: 0.4858 - loss: 1.1871 - val_accuracy: 0.5550 - val_loss: 0.6907
+Model weights saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_4/Region_45/model.weights.h5
+History saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_4/Region_45/history.csv
+Plots saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_4/Region_45/
+[1m1/7[0m [32m━━[0m[37m━━━━━━━━━━━━━━━━━━[0m [1m3s[0m 656ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 112ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m1s[0m 119ms/step
+Region-wise performance saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_4/Region_45/region_performance_split_4.csv
+
+
+x_train shape: (1694, 128), x_val shape: (209, 128), x_test shape: (209, 128)
+
+
+[1m1/4[0m [32m━━━━━[0m[37m━━━━━━━━━━━━━━━[0m [1m23s[0m 8s/step - accuracy: 0.5176 - loss: 0.8712[1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 2s/step - accuracy: 0.5141 - loss: 0.9039 [1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m14s[0m 2s/step - accuracy: 0.5159 - loss: 0.8968 - val_accuracy: 0.5263 - val_loss: 0.6905
+Model weights saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_5/Region_45/model.weights.h5
+History saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_5/Region_45/history.csv
+Plots saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_5/Region_45/
+[1m1/7[0m [32m━━[0m[37m━━━━━━━━━━━━━━━━━━[0m [1m4s[0m 682ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 116ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m1s[0m 123ms/step
+Region-wise performance saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_5/Region_45/region_performance_split_5.csv
+
+
+
+TEMPOO per 5 folds 81.96542859007604 
+
+
+
+
+
+x_train shape: (1683, 128), x_val shape: (209, 128), x_test shape: (220, 128)
+
+
+[1m1/4[0m [32m━━━━━[0m[37m━━━━━━━━━━━━━━━[0m [1m23s[0m 8s/step - accuracy: 0.5137 - loss: 0.9002[1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 2s/step - accuracy: 0.5117 - loss: 0.9845 [1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m14s[0m 2s/step - accuracy: 0.5140 - loss: 1.0103 - val_accuracy: 0.4737 - val_loss: 0.7105
+Model weights saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_1/Region_48/model.weights.h5
+History saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_1/Region_48/history.csv
+Plots saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_1/Region_48/
+[1m1/7[0m [32m━━[0m[37m━━━━━━━━━━━━━━━━━━[0m [1m4s[0m 693ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 111ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m1s[0m 118ms/step
+Region-wise performance saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_1/Region_48/region_performance_split_1.csv
+
+
+x_train shape: (1683, 128), x_val shape: (209, 128), x_test shape: (220, 128)
+
+
+[1m1/4[0m [32m━━━━━[0m[37m━━━━━━━━━━━━━━━[0m [1m23s[0m 8s/step - accuracy: 0.4844 - loss: 0.9927[1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 2s/step - accuracy: 0.4871 - loss: 1.0923 [1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m14s[0m 2s/step - accuracy: 0.4908 - loss: 1.0861 - val_accuracy: 0.5455 - val_loss: 0.6876
+Model weights saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_2/Region_48/model.weights.h5
+History saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_2/Region_48/history.csv
+Plots saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_2/Region_48/
+[1m1/7[0m [32m━━[0m[37m━━━━━━━━━━━━━━━━━━[0m [1m4s[0m 697ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 115ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m1s[0m 121ms/step
+Region-wise performance saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_2/Region_48/region_performance_split_2.csv
+
+
+x_train shape: (1694, 128), x_val shape: (209, 128), x_test shape: (209, 128)
+
+
+[1m1/4[0m [32m━━━━━[0m[37m━━━━━━━━━━━━━━━[0m [1m26s[0m 9s/step - accuracy: 0.4844 - loss: 1.0912[1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 2s/step - accuracy: 0.4982 - loss: 1.0795 [1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m15s[0m 2s/step - accuracy: 0.5053 - loss: 1.0481 - val_accuracy: 0.5407 - val_loss: 0.6874
+Model weights saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_3/Region_48/model.weights.h5
+History saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_3/Region_48/history.csv
+Plots saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_3/Region_48/
+[1m1/7[0m [32m━━[0m[37m━━━━━━━━━━━━━━━━━━[0m [1m3s[0m 649ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 113ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m1s[0m 119ms/step
+Region-wise performance saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_3/Region_48/region_performance_split_3.csv
+
+
+x_train shape: (1694, 128), x_val shape: (209, 128), x_test shape: (209, 128)
+
+
+[1m1/4[0m [32m━━━━━[0m[37m━━━━━━━━━━━━━━━[0m [1m22s[0m 7s/step - accuracy: 0.4805 - loss: 0.9480[1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 2s/step - accuracy: 0.5031 - loss: 0.9105 [1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m14s[0m 2s/step - accuracy: 0.5165 - loss: 0.8949 - val_accuracy: 0.5263 - val_loss: 0.6981
+Model weights saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_4/Region_48/model.weights.h5
+History saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_4/Region_48/history.csv
+Plots saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_4/Region_48/
+[1m1/7[0m [32m━━[0m[37m━━━━━━━━━━━━━━━━━━[0m [1m3s[0m 651ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 115ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m1s[0m 122ms/step
+Region-wise performance saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_4/Region_48/region_performance_split_4.csv
+
+
+x_train shape: (1694, 128), x_val shape: (209, 128), x_test shape: (209, 128)
+
+
+[1m1/4[0m [32m━━━━━[0m[37m━━━━━━━━━━━━━━━[0m [1m23s[0m 8s/step - accuracy: 0.5312 - loss: 1.0419[1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 2s/step - accuracy: 0.5236 - loss: 1.0657 [1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m14s[0m 2s/step - accuracy: 0.5207 - loss: 1.0361 - val_accuracy: 0.5263 - val_loss: 0.6888
+Model weights saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_5/Region_48/model.weights.h5
+History saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_5/Region_48/history.csv
+Plots saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_5/Region_48/
+[1m1/7[0m [32m━━[0m[37m━━━━━━━━━━━━━━━━━━[0m [1m4s[0m 670ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 115ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m1s[0m 122ms/step
+Region-wise performance saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_5/Region_48/region_performance_split_5.csv
+
+
+
+TEMPOO per 5 folds 81.79905171203427 
+
+
+
+
+
+x_train shape: (1683, 128), x_val shape: (209, 128), x_test shape: (220, 128)
+
+
+[1m1/4[0m [32m━━━━━[0m[37m━━━━━━━━━━━━━━━[0m [1m23s[0m 8s/step - accuracy: 0.4883 - loss: 0.9120[1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 2s/step - accuracy: 0.4956 - loss: 0.9691 [1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m14s[0m 2s/step - accuracy: 0.4973 - loss: 0.9722 - val_accuracy: 0.4737 - val_loss: 0.7025
+Model weights saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_1/Region_49/model.weights.h5
+History saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_1/Region_49/history.csv
+Plots saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_1/Region_49/
+[1m1/7[0m [32m━━[0m[37m━━━━━━━━━━━━━━━━━━[0m [1m3s[0m 639ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 116ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m1s[0m 123ms/step
+Region-wise performance saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_1/Region_49/region_performance_split_1.csv
+
+
+x_train shape: (1683, 128), x_val shape: (209, 128), x_test shape: (220, 128)
+
+
+[1m1/4[0m [32m━━━━━[0m[37m━━━━━━━━━━━━━━━[0m [1m24s[0m 8s/step - accuracy: 0.5117 - loss: 0.9306[1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 2s/step - accuracy: 0.5265 - loss: 0.9465 [1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m14s[0m 2s/step - accuracy: 0.5354 - loss: 0.9633 - val_accuracy: 0.5263 - val_loss: 0.6942
+Model weights saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_2/Region_49/model.weights.h5
+History saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_2/Region_49/history.csv
+Plots saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_2/Region_49/
+[1m1/7[0m [32m━━[0m[37m━━━━━━━━━━━━━━━━━━[0m [1m4s[0m 674ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 114ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m1s[0m 121ms/step
+Region-wise performance saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_2/Region_49/region_performance_split_2.csv
+
+
+x_train shape: (1694, 128), x_val shape: (209, 128), x_test shape: (209, 128)
+
+
+[1m1/4[0m [32m━━━━━[0m[37m━━━━━━━━━━━━━━━[0m [1m23s[0m 8s/step - accuracy: 0.5039 - loss: 0.9138[1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 2s/step - accuracy: 0.4998 - loss: 1.0271 [1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m14s[0m 2s/step - accuracy: 0.4970 - loss: 1.0384 - val_accuracy: 0.5263 - val_loss: 0.6939
+Model weights saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_3/Region_49/model.weights.h5
+History saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_3/Region_49/history.csv
+Plots saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_3/Region_49/
+[1m1/7[0m [32m━━[0m[37m━━━━━━━━━━━━━━━━━━[0m [1m4s[0m 676ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 112ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m1s[0m 119ms/step
+Region-wise performance saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_3/Region_49/region_performance_split_3.csv
+
+
+x_train shape: (1694, 128), x_val shape: (209, 128), x_test shape: (209, 128)
+
+
+[1m1/4[0m [32m━━━━━[0m[37m━━━━━━━━━━━━━━━[0m [1m23s[0m 8s/step - accuracy: 0.5020 - loss: 1.3630[1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 2s/step - accuracy: 0.5123 - loss: 1.2615 [1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m14s[0m 2s/step - accuracy: 0.5189 - loss: 1.1929 - val_accuracy: 0.5263 - val_loss: 0.6933
+Model weights saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_4/Region_49/model.weights.h5
+History saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_4/Region_49/history.csv
+Plots saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_4/Region_49/
+[1m1/7[0m [32m━━[0m[37m━━━━━━━━━━━━━━━━━━[0m [1m3s[0m 663ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 112ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m1s[0m 119ms/step
+Region-wise performance saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_4/Region_49/region_performance_split_4.csv
+
+
+x_train shape: (1694, 128), x_val shape: (209, 128), x_test shape: (209, 128)
+
+
+[1m1/4[0m [32m━━━━━[0m[37m━━━━━━━━━━━━━━━[0m [1m22s[0m 8s/step - accuracy: 0.5078 - loss: 0.9400[1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 2s/step - accuracy: 0.5012 - loss: 1.0626 [1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m14s[0m 2s/step - accuracy: 0.4982 - loss: 1.0866 - val_accuracy: 0.5263 - val_loss: 0.7050
+Model weights saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_5/Region_49/model.weights.h5
+History saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_5/Region_49/history.csv
+Plots saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_5/Region_49/
+[1m1/7[0m [32m━━[0m[37m━━━━━━━━━━━━━━━━━━[0m [1m4s[0m 684ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 113ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m1s[0m 118ms/step
+Region-wise performance saved to _Deep_Learning/Models_trained/2026-02-04-20_53_30_CNN_1region_regionspecific_Interesting_regions/Split_5/Region_49/region_performance_split_5.csv
+
+
+
+TEMPOO per 5 folds 81.85353108600248 
+
+
+
