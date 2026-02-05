@@ -32,11 +32,14 @@ MyRegions = Interesting_regions
 
 
 from BCI_Library import read_subject
+subject = 8
+DataType = "EEG"
+
 data_folder="Data/"
 today = date.today()
 # print(f"\n\nCurrent working directory: {os.getcwd()}") # Current working directory: /home/silvia/Documents/GitHub/BCI_Project
 
-path = "_Deep_Learning/Models_trained/"
+path = f"_Deep_Learning/Models_trained/Subject_{subject}/CNN/"
 Script_name = "_Deep_Learning/Models/CNN/CNN_1region_region_agnostic_region_selected.py"
 Additional_Script_name = "_Deep_Learning/Deep_Library_BCI.py"
 
@@ -98,8 +101,6 @@ with open(savedir+'_Backup_script.txt', "a") as f:
 # COME NORMALIZZARE? (VAEGG esclude tutti quelli superiori a 400 microV; BrainOmni eachchannel is normalised to zero mean and unitvariance 
 # at sample level)
 
-subject = 2
-DataType = "EEG"
 
 ##########################################
 # Read data - filter

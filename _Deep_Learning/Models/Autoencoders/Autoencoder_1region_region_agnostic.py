@@ -1,4 +1,4 @@
-# nohup .venv/bin/python _Deep_Learning/Autoencoder_1region_region_agnostic.py &> _Deep_Learning/LOGS/Autoencoder_out_2026_01_16_10_30.txt
+# nohup .venv/bin/python _Deep_Learning/Models/Autoencoders/Autoencoder_1region_region_agnostic.py &> _Deep_Learning/LOGS/Autoencoder_out_2026_01_16_10_30.txt
 
 import time
 from datetime import date
@@ -14,22 +14,27 @@ import pandas as pd
 from keras import optimizers
 from keras.callbacks import EarlyStopping
 import sys
-from Deep_Library_BCI import MultiTaskModel
 
+sys.path.append(os.path.abspath("Codes"))
+sys.path.append(os.path.abspath("_Deep_Learning"))
+
+from Deep_Library_BCI import MultiTaskModel
 from Utils import (freq_filter, windowize, save_training_results, plot_random_reconstructions,
                    evaluate_autoencoder_by_region, aggregate_columns_dfs)
 Normalization = "RegionWise" # "RegionWise" or "TraceWise" or "mediatrace,stdregionwise"
 from Utils import TraceWiseStandardizer, RegionWiseStandardizer
 
-
-sys.path.append(os.path.abspath("Codes"))
 from BCI_Library import read_subject
+
 data_folder="Data/"
+subject = 8
+DataType = "EEG"
+
 today = date.today()
 # print(f"\n\nCurrent working directory: {os.getcwd()}") # Current working directory: /home/silvia/Documents/GitHub/BCI_Project
 
-path = "_Deep_Learning/Models_trained/"
-Script_name = "_Deep_Learning/Autoencoder_1region_region_agnostic.py"
+path = f"_Deep_Learning/Models_trained/Subject_{subject}/Autoencoders/"
+Script_name = "_Deep_Learning/Models/Autoencoders/Autoencoder_1region_region_agnostic.py"
 Additional_Script_name = "_Deep_Learning/Deep_Library_BCI.py"
 
 tag = "Autoencoder_First_Try"
@@ -90,8 +95,6 @@ with open(savedir+'_Backup_script.txt', "a") as f:
 # COME NORMALIZZARE? (VAEGG esclude tutti quelli superiori a 400 microV; BrainOmni eachchannel is normalised to zero mean and unitvariance 
 # at sample level)
 
-subject = 2
-DataType = "EEG"
 
 ###################################################################################################################################
 # Read data - filter
