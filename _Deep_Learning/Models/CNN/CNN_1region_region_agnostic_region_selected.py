@@ -32,7 +32,7 @@ MyRegions = Interesting_regions
 
 
 from BCI_Library import read_subject
-subject = 8
+subject = 1
 DataType = "EEG"
 
 data_folder="Data/"
