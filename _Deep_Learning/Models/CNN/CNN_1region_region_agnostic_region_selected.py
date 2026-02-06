@@ -94,7 +94,7 @@ with open(savedir+'_Backup_script.txt', "w") as f:
 
 with open(Additional_Script_name, "r") as fu:
     script_content = fu.read()
-with open(savedir+'_Backup_script.txt', "a") as f:
+with open(savedir+'_Backup_Library.py', "w") as f:
     f.write("\n\n\n"+"#"*150+"\n"+"#"*45+"  Deep_Library_BCI details  "+"#"*45+"\n"+script_content)
 
 # TODO: 

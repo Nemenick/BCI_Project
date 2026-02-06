@@ -462,6 +462,7 @@ def saveresults_pickle(new_rows, inputfile=None, outputfile=None, backup=True, r
         print(f"There are {len(index_of_duplicates)} duplicated items (based on all columns except Date, ROIs, Accuracy).\n", 
               f"Index of the duplicated items: {index_of_duplicates}")
         results.to_pickle(outputfile)
+        print(f"\nResults saved at: {outputfile}")
 
     except Exception as e:
         print("#######"*10,"\n","Exception occurred:", e,"\n","#######"*10)
@@ -469,6 +470,8 @@ def saveresults_pickle(new_rows, inputfile=None, outputfile=None, backup=True, r
         if resetindex:
             new_rows.reset_index(drop=True,inplace=True)
         new_rows.to_pickle(outputfile+"new") 
+        print(f"\nResults saved at: {outputfile+"new"}")
+        
 
 
 ################################## Features extraction - selection ##################################
