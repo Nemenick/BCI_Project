@@ -1,4 +1,4 @@
-# nohup .venv/bin/python _Deep_Learning/Models/Autoencoders/Autoencoder_1region_region_agnostic.py &> _Deep_Learning/LOGS/Autoencoder_out_2026_01_16_10_30.txt
+# nohup .venv/bin/python _Deep_Learning/Models/Autoencoders/Encoder_1region_region_agnostic_output_power_spectra.py &> _Deep_Learning/LOGS/Encoder_out_2026_02_16_10_30.txt
 
 import time
 from datetime import date
@@ -34,10 +34,10 @@ today = date.today()
 # print(f"\n\nCurrent working directory: {os.getcwd()}") # Current working directory: /home/silvia/Documents/GitHub/BCI_Project
 
 path = f"_Deep_Learning/Models_trained/Subject_{subject}/Autoencoders/"
-Script_name = "_Deep_Learning/Models/Autoencoders/Autoencoder_1region_region_agnostic.py"
+Script_name = "_Deep_Learning/Models/Autoencoders/Encoder_1region_region_agnostic_output_power_spectra.py"
 Additional_Script_name = "_Deep_Learning/Deep_Library_BCI.py"
 
-tag = "Autoencoder_First_Try"
+tag = "Encoder_timeseries_Decoder_spectra"
 now = datetime.now()
 formatted_time = now.strftime("%Y-%m-%d-%H_%M_%S")
 tag = formatted_time + "_" + tag # /home/silvia/Documents/GitHub/GAN_Prova/GAN/WGAN/tag_time 
