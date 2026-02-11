@@ -1,0 +1,20 @@
+nohup: ignoring input
+2026-02-11 14:18:35.948344: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2026-02-11 14:18:36.009609: I tensorflow/core/platform/cpu_feature_guard.cc:210] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 AVX512F AVX512_VNNI FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+2026-02-11 14:18:37.433843: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1770815922.053949 3877915 gpu_device.cc:2020] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 6761 MB memory:  -> device: 1, name: Quadro RTX 4000, pci bus id: 0000:9e:00.0, compute capability: 7.5
+
+
+x_train shape: (13464, 128), x_val shape: (1672, 128), x_test shape: (1760, 128)
+
+
+Epoch 1/200
+2026-02-11 14:18:46.496068: I external/local_xla/xla/service/service.cc:163] XLA service 0x7f25fc0028e0 initialized for platform CUDA (this does not guarantee that XLA will be used). Devices:
+2026-02-11 14:18:46.496112: I external/local_xla/xla/service/service.cc:171]   StreamExecutor device (0): Quadro RTX 4000, Compute Capability 7.5
+2026-02-11 14:18:46.570584: I tensorflow/compiler/mlir/tensorflow/utils/dump_mlir_util.cc:269] disabling MLIR crash reproducer, set env var `MLIR_CRASH_REPRODUCER_DIRECTORY` to enable.
+2026-02-11 14:18:46.978228: I external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:473] Loaded cuDNN version 91800
+2026-02-11 14:18:48.115504: W external/local_xla/xla/tsl/framework/bfc_allocator.cc:382] Garbage collection: deallocate free memory regions (i.e., allocations) so that we can re-allocate a larger region to avoid OOM due to memory fragmentation. If you see this message frequently, you are running near the threshold of the available device memory and re-allocation may incur great performance overhead. You may try smaller batch sizes to observe the performance impact. Set TF_ENABLE_GPU_GARBAGE_COLLECTION=false if you'd like to disable this feature.
+I0000 00:00:1770815934.007238 3881586 device_compiler.h:196] Compiled cluster using XLA!  This line is logged at most once for the lifetime of the process.
+[1m 1/27[0m [37m━━━━━━━━━━━━━━━━━━━━[0m [1m4:36[0m 11s/step - accuracy: 0.5234 - loss: 0.9357[1m 5/27[0m [32m━━━[0m[37m━━━━━━━━━━━━━━━━━[0m [1m0s[0m 14ms/step - accuracy: 0.5200 - loss: 1.0076 [1m 9/27[0m [32m━━━━━━[0m[37m━━━━━━━━━━━━━━[0m [1m0s[0m 13ms/step - accuracy: 0.5297 - loss: 0.9852[1m13/27[0m [32m━━━━━━━━━[0m[37m━━━━━━━━━━━[0m [1m0s[0m 13ms/step - accuracy: 0.5357 - loss: 0.9650[1m18/27[0m [32m━━━━━━━━━━━━━[0m[37m━━━━━━━[0m [1m0s[0m 13ms/step - accuracy: 0.5401 - loss: 0.9439[1m23/27[0m [32m━━━━━━━━━━━━━━━━━[0m[37m━━━[0m [1m0s[0m 13ms/step - accuracy: 0.5432 - loss: 0.9257
