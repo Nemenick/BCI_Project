@@ -1,4 +1,4 @@
-# nohup .venv/bin/python _Deep_Learning/Models/Autoencoders/Autoencoder_1region_region_agnostic_region_selected.py &> _Deep_Learning/LOGS/Autoencoder_out_2026_02_05_12_30.txt
+# nohup .venv/bin/python _Deep_Learning/Models/Autoencoders/Autoencoder_1region_region_agnostic_region_selected_fixed_selection.py &> _Deep_Learning/LOGS/Autoencoder_out_2026_02_05_12_30.txt
 
 import time
 from datetime import date
@@ -39,7 +39,7 @@ today = date.today()
 # print(f"\n\nCurrent working directory: {os.getcwd()}") # Current working directory: /home/silvia/Documents/GitHub/BCI_Project
 
 path = "_Deep_Learning/Models_trained/"
-Script_name = "_Deep_Learning/Models/Autoencoders/Autoencoder_1region_region_agnostic_region_selected.py"
+Script_name = "_Deep_Learning/Models/Autoencoders/Autoencoder_1region_region_agnostic_region_selected_fixed_selection.py"
 Additional_Script_name = "_Deep_Learning/Deep_Library_BCI.py"
 
 tag = "Autoencoder_1region_region_agnostic_Training_on_Interesting_Regions"

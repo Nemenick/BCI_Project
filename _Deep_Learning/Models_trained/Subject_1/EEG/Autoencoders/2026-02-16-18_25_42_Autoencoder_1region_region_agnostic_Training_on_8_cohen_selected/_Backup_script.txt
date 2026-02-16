@@ -1,0 +1,261 @@
+# nohup .venv/bin/python _Deep_Learning/Models/Autoencoders/Autoencoder_1region_region_agnostic_region_selected_per_fold_selection.py &> _Deep_Learning/LOGS/Autoencoder_out_2026_02_05_12_30.txt
+
+import time
+from datetime import date
+import os
+from datetime import datetime
+import numpy as np
+from sklearn.model_selection import StratifiedKFold, train_test_split
+import tensorflow as tf
+import subprocess
+import matplotlib.pyplot as plt
+import subprocess
+import pandas as pd 
+from keras import optimizers
+from keras.callbacks import EarlyStopping, ReduceLROnPlateau
+import sys
+
+sys.path.append(os.path.abspath("Codes"))
+sys.path.append(os.path.abspath("_Deep_Learning"))
+
+
+from Utils import (freq_filter, windowize, save_training_results, plot_random_reconstructions,
+                   evaluate_autoencoder_by_region, aggregate_columns_dfs)
+Normalization = "RegionWise" # "RegionWise" or "TraceWise" or "mediatrace,stdregionwise"
+from Utils import TraceWiseStandardizer, RegionWiseStandardizer
+
+from Deep_Library_BCI import MultiTaskModel
+from BCI_Library import read_subject, compute_welch, select_regions_Cohen_effect_size
+
+
+data_folder="Data/"
+subject = 1
+DataType = "EEG"
+
+today = date.today()
+# print(f"\n\nCurrent working directory: {os.getcwd()}") # Current working directory: /home/silvia/Documents/GitHub/BCI_Project
+
+path = f"_Deep_Learning/Models_trained/Subject_{subject}/{DataType}/Autoencoders/"
+Script_name = "_Deep_Learning/Models/Autoencoders/Autoencoder_1region_region_agnostic_region_selected_per_fold_selection.py"
+Additional_Script_name = "_Deep_Learning/Deep_Library_BCI.py"
+
+tag = "Autoencoder_1region_region_agnostic_Training_on_8_cohen_selected"
+now = datetime.now()
+formatted_time = now.strftime("%Y-%m-%d-%H_%M_%S")
+tag = formatted_time + "_" + tag # /home/silvia/Documents/GitHub/GAN_Prova/GAN/WGAN/tag_time 
+savedir = path+tag+"/"
+
+start = 3           # seconds where to start to extract windows
+sampling_hz = 250;  start = start*sampling_hz
+input_shape = 128   # length of each window
+shift = 62          # points to shift for next window in data
+num_windows = 11    # how many windows to extract from each trial
+
+end = start + (num_windows-1)*shift + input_shape  # seconds where to end to extract windows (1500 == 6 seconds)
+
+epochs = 200
+batch_monitor=35
+latent_dim = 16
+BATCH_SIZE = 512
+pazienza = 20
+LAST_LAYER_ACTIVATION = "sigmoid"
+tanh = False
+
+n_regions = 8
+random_seed = 224
+
+try:
+    def get_gpu_memory_usage():
+        command = "nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits"
+        memory_usage = subprocess.check_output(command, shell=True).decode("utf-8").strip().split("\n")
+        memory_usage = [int(memory) for memory in memory_usage]
+        return memory_usage
+    mem_usage = get_gpu_memory_usage()
+    # Allow memory growth to prevent TensorFlow from allocating all GPU memory at once
+    gpus = tf.config.experimental.list_physical_devices('GPU')
+    for gpu in gpus:
+        tf.config.experimental.set_memory_growth(gpu, True)
+    # Specify which GPU to use for this script
+    # For example, to use GPU 1: tf.config.experimental.set_visible_devices(gpus[1], 'GPU')
+    tf.config.experimental.set_visible_devices(gpus[np.argmin(mem_usage)], 'GPU')
+except Exception as e:
+    print(f"VADO AVANTI, non scelgo device tf: Occurred {e} \n")
+
+os.mkdir(path+tag)
+# Backup scripts
+with open(Script_name, "r") as f:
+    script_content = f.read()
+with open(savedir+'_Backup_script.txt', "w") as f:
+    f.write(script_content)
+
+with open(Additional_Script_name, "r") as fu:
+    script_content = fu.read()
+with open(savedir+'_Backup_Library.py', "w") as f:
+    f.write("\n\n\n"+"#"*150+"\n"+"#"*45+"  Deep_Library_BCI details  "+"#"*45+"\n"+script_content)
+
+# TODO: 
+# COME NORMALIZZARE? (VAEGG esclude tutti quelli superiori a 400 microV; BrainOmni eachchannel is normalised to zero mean and unitvariance 
+# at sample level)
+
+
+###################################################################################################################################
+# Read data - filter
+# TODO ATTENTION to put Rest before, then MI (for create_labels function)  
+data_2_Rest = read_subject(data_folder, DataType, "Baseline",subject)
+data_2_MI = read_subject(data_folder, DataType, "MI",subject)
+data = np.concatenate((data_2_Rest, data_2_MI), axis=0)
+
+WMI, WRe, FreqMI = compute_welch(data_2_MI, data_2_Rest, sfreq=250, kargs_welch={"fmin":8, "fmax":30})
+
+
+data = freq_filter(data, sf=250, freqs=[4,45], type_filter="bandpass") # axis = -1 by default
+data = data[:,:,start:end]        #  data.shape = (192, 68, 748)
+
+# y shape: (n_trials,) with negative values for Rest and positive for MI
+y = np.concatenate([-np.ones((data_2_Rest.shape[0])), np.ones((data_2_MI.shape[0]))])
+
+###################################################################################################################################
+# Split - Extract windows
+# preserve balancing of data
+
+start = time.perf_counter()
+evaluated_by_regions_dataframes = []
+
+n_folds=5
+kf = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=random_seed)
+
+
+for fold_idx, (train_idx, block_idx) in enumerate(kf.split(data, y)):
+    split_num = fold_idx+1
+
+    X_train = data[train_idx]
+    y_train = y[train_idx]
+    # X_Train shape: (n_trials_train, n_regions, n_timepoints)
+    # y_Train shape: (n_trials_train,) ∈ {-1,+1}
+
+    selected_idx = train_idx
+    regions_selected, effect_sizes = select_regions_Cohen_effect_size(wpsdMI=WMI[selected_idx[np.where(selected_idx>=len(WRe))]-len(WRe)], 
+                                                    wpsdRest=WRe[selected_idx[np.where(selected_idx<len(WRe))]], 
+                                                    important_regions=[], nbest_regions=n_regions)
+    print(X_train.shape)
+    X_train = X_train[:,regions_selected]
+    print(X_train.shape,data.shape)
+
+    X_Block = data[block_idx][:,regions_selected,:]
+    y_Block = y[block_idx]
+
+
+    X_val, X_test, y_val, y_test = train_test_split(
+    X_Block, y_Block, test_size=0.5,         
+    shuffle=True, stratify=y_Block,     # preserves label balance
+    random_state=random_seed)
+
+
+    y_train = np.repeat(y_train[:,np.newaxis], repeats=n_regions,axis=1)
+    # assegno valore in base a ROI, da ±1 a ±68
+    for col in range(y_train.shape[1]):
+        y_train[:, col] *= regions_selected[col]
+    
+    # X_Train shape: (n_trials_train, n_regions, n_timepoints)
+    # y_Train shape: (n_trials_train, n_regions) ∈ {-68,...-1,+1,...,+68}
+
+    y_val = np.repeat(y_val[:,np.newaxis], repeats=n_regions,axis=1)
+    for col in range(y_val.shape[1]):
+        y_val[:, col] *= regions_selected[col]
+
+    y_test = np.repeat(y_test[:,np.newaxis], repeats=n_regions,axis=1)
+    for col in range(y_test.shape[1]):
+        y_test[:, col] *= regions_selected[col]
+
+    x_train = X_train.reshape(-1, X_train.shape[-1]) # shape (n_trials*n_regions, n_timepoints)
+    x_val = X_val.reshape(-1, X_val.shape[-1])
+    x_test = X_test.reshape(-1, X_test.shape[-1])
+
+    y_train = y_train.reshape(-1)
+    y_val = y_val.reshape(-1)
+    y_test = y_test.reshape(-1)
+
+    # x_train shape: (n_trials_train * n_regions, n_timepoints)
+    # y_train shape: (n_trials_train * n_regions,) ∈ {-68,...,-1,+1,...,+68}
+
+    x_train, y_train = windowize(x_train, y_train, win_len=input_shape, shift=shift)
+    x_val, y_val     = windowize(x_val, y_val, win_len=input_shape, shift=shift)
+    x_test, y_test   = windowize(x_test, y_test, win_len=input_shape, shift=shift)
+    # shape: x -> (n_windows, timepoints) ; y -> (n_windows,)
+    # y is ± region index (SIGN is negative for REST and positive for MI; absolute value is region index)
+
+
+ 
+    print(f"\n\nx_train shape: {x_train.shape}, x_val shape: {x_val.shape}, x_test shape: {x_test.shape}\n\n")
+
+    ###################################################################################################################################
+    # NORMALIZATION (per region?)
+    # Optimizing EEG ICA Decomposition with Machine Learning: A CNN-Based Alternative to EEGLAB for Fast and Scalable Brain Activity Analysis
+    # Assessing the Role of EEG Biosignal Preprocessing to Enhance Multiscale Fuzzy Entropy in Alzheimer’s Disease Detection
+    # (when applying on multiple subjects) Cross-Subject EEG-Based Emotion Recognition Through Neural Networks With Stratified Normalization 
+
+    scaler = RegionWiseStandardizer()
+    x_train = scaler.fit_transform(x_train, y_train)
+    x_val = scaler.transform(x_val, y_val)
+    x_test = scaler.transform(x_test, y_test)
+    # scaler = TraceWiseStandardizer()
+    # x_train = scaler.transform(x_train)
+    # x_val = scaler.transform(x_val)
+    # x_test = scaler.transform(x_test)
+    x_train = x_train[..., np.newaxis]  
+    x_val = x_val[..., np.newaxis]  
+    x_test = x_test[..., np.newaxis] 
+
+    # reconstruction loss: MSE
+    # reconstruction metric: MAE
+
+    # classification loss: binary_crossentropy
+    # classification metric: accuracy
+
+    model = MultiTaskModel(use_decoder=True, use_classifier=False)
+    optimizer = optimizers.Adam(epsilon=1e-04)
+    model.compile_cases(optimizer, loss_reconstruction="MSE", loss_classification=None)
+
+    # labels_train = (y_train > 0).astype(int)
+    # labels_val = (y_val > 0).astype(int)
+    # labels_test = (y_test > 0).astype(int)
+    RL = ReduceLROnPlateau(
+    monitor="val_loss",
+    factor=0.3,
+    patience=7,
+    verbose=1,
+    min_delta=1e-4,
+    cooldown=1,
+    min_lr=5e-7
+    )
+
+    storia = model.fit_cases(x_train, x_val, epochs=epochs, batch_size=BATCH_SIZE, 
+                                callbacks=[EarlyStopping(monitor="val_loss", patience=pazienza,  restore_best_weights=True, start_from_epoch=20),
+                                RL])
+    # EarlyStopping comments:
+    # val_loss in multi-output monitors the total loss (weighted);
+    # patience 10 is good For Classification only
+    plot_random_reconstructions(model, x_test[:,:,0], n_samples=10, save_dir=savedir+f"Split_{split_num}/reconstruction_plots_{split_num}")
+
+    save_training_results(model, storia, savedir+f"Split_{split_num}/")
+
+
+    # Compute performances varying the region
+    tmp_df = evaluate_autoencoder_by_region(model, x_test, y_test, save_name=None)
+    tmp_df["Split_seed"] = random_seed
+    tmp_df["DataType"] = DataType
+    tmp_df["subject"] = subject
+    tmp_df["Features"] = "Autoencoder_extracted"
+    tmp_df["Comments"] = "-"
+    tmp_df["Date"] = today
+    tmp_df["WindowsNormalization"] = Normalization
+    svname = savedir+f"Split_{split_num}/region_performance_split_{split_num}.csv"
+    tmp_df.to_csv(svname, index=False)
+    print(f"Region-wise reconstruction performance saved to {svname}")
+    evaluated_by_regions_dataframes.append(tmp_df)
+
+#aggregated_df = aggregate_columns_dfs(evaluated_by_regions_dataframes, cols_to_aggregate=["n_windows", "MSE_mean", "MSE_std", "MAE_mean", "MAE_std"])
+#aggregated_df.to_pickle(f"{savedir}aggregated_region_performance.pkl")
+
+print("\n\n\nTEMPOO per 5 folds", time.perf_counter()-start, "\n\n\n")
+

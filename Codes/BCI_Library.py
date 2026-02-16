@@ -504,7 +504,7 @@ def cohens_d_per_columm(X_MI, X_Re, return_all=False):
         return d_max
 
 def compute_welch(data_MI, data_Rest, sfreq=250, starttime=250, endtime=250,
-                    kargs_welch={"fmin":4, "fmax":30,"n_per_seg":250, "n_fft":300,"n_overlap":125, "verbose":False}):
+                    kargs_welch={"fmin":8, "fmax":30,"n_per_seg":250, "n_fft":300,"n_overlap":125, "verbose":False}):
     """
     Compute spectra 
     ----------
@@ -523,7 +523,7 @@ def compute_welch(data_MI, data_Rest, sfreq=250, starttime=250, endtime=250,
     returned_objects = []
 
     # vedo se ho tutte le info che servono
-    standard_dict = {"fmin":4, "fmax":30,"n_per_seg":250, "n_fft":300,"n_overlap":125, "verbose":False}
+    standard_dict = {"fmin":8, "fmax":30,"n_per_seg":250, "n_fft":300,"n_overlap":125, "verbose":False}
     for key in standard_dict.keys():
         if key not in kargs_welch:
             kargs_welch[key] = standard_dict[key]
