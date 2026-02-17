@@ -1,4 +1,4 @@
-# nohup .venv/bin/python _Deep_Learning/Models/Autoencoders/Autoencoder_1region_region_specific.py &> _Deep_Learning/LOGS/Autoencoder_out_2026_01_16_10_30.txt
+# nohup .venv/bin/python _Deep_Learning/Models/Autoencoders/Autoencoder_1region_region_specific.py &> _Deep_Learning/LOGS/Autoencoder_out_2026_02_16_10_30.txt
 
 import time
 from datetime import date
@@ -15,9 +15,6 @@ from keras import optimizers
 from keras.callbacks import EarlyStopping
 import sys
 
-
-
-
 sys.path.append(os.path.abspath("Codes"))
 sys.path.append(os.path.abspath("_Deep_Learning"))
 
@@ -28,15 +25,20 @@ from Utils import TraceWiseStandardizer, RegionWiseStandardizer
 
 from Deep_Library_BCI import MultiTaskModel
 from BCI_Library import read_subject
+
 data_folder="Data/"
+subject = 8;  selected_regions = [0, 7, 12, 13, 15, 20, 21, 23, 26, 27, 34, 35, 50, 51, 58]
+DataType = "EEG"
+# selected_regions for subject 1 =[1, 7, 17, 19, 23, 31, 43, 51, 59, 61, 67]  # selected_regions for subject 2= [4, 14, 32, 33, 34, 44, 47, 48, 50, 62]
+
 today = date.today()
 # print(f"\n\nCurrent working directory: {os.getcwd()}") # Current working directory: /home/silvia/Documents/GitHub/BCI_Project
 
-path = "_Deep_Learning/Models_trained/"
+path = f"_Deep_Learning/Models_trained/Subject_{subject}/{DataType}/Autoencoders/"
 Script_name = "_Deep_Learning/Models/Autoencoders/Autoencoder_1region_region_specific.py"
 Additional_Script_name = "_Deep_Learning/Deep_Library_BCI.py"
 
-tag = "Autoencoder_1region_regionspecific_cohen_global_First_Try"
+tag = "Autoencoder_1region_regionspecific_cohen_subject_specific"
 now = datetime.now()
 formatted_time = now.strftime("%Y-%m-%d-%H_%M_%S")
 tag = formatted_time + "_" + tag # /home/silvia/Documents/GitHub/GAN_Prova/GAN/WGAN/tag_time 
@@ -59,7 +61,6 @@ LAST_LAYER_ACTIVATION = "sigmoid"
 tanh = False
 
 n_regions = 68
-selected_regions = [4, 14, 20, 32, 33, 44, 46, 48, 50, 58, 62]
 random_seed = 224
 
 try:
@@ -94,9 +95,6 @@ with open(savedir+'_Backup_Library.py', "w") as f:
 # TODO: 
 # COME NORMALIZZARE? (VAEGG esclude tutti quelli superiori a 400 microV; BrainOmni eachchannel is normalised to zero mean and unitvariance 
 # at sample level)
-
-subject = 2
-DataType = "EEG"
 
 ###################################################################################################################################
 # Read data - filter

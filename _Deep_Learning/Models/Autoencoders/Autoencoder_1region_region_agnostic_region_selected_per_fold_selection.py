@@ -18,7 +18,6 @@ import sys
 sys.path.append(os.path.abspath("Codes"))
 sys.path.append(os.path.abspath("_Deep_Learning"))
 
-
 from Utils import (freq_filter, windowize, save_training_results, plot_random_reconstructions,
                    evaluate_autoencoder_by_region, aggregate_columns_dfs)
 Normalization = "RegionWise" # "RegionWise" or "TraceWise" or "mediatrace,stdregionwise"
@@ -26,7 +25,6 @@ from Utils import TraceWiseStandardizer, RegionWiseStandardizer
 
 from Deep_Library_BCI import MultiTaskModel
 from BCI_Library import read_subject, compute_welch, select_regions_Cohen_effect_size
-
 
 data_folder="Data/"
 subject = 8
@@ -96,7 +94,6 @@ with open(savedir+'_Backup_Library.py', "w") as f:
 # TODO: 
 # COME NORMALIZZARE? (VAEGG esclude tutti quelli superiori a 400 microV; BrainOmni eachchannel is normalised to zero mean and unitvariance 
 # at sample level)
-
 
 ###################################################################################################################################
 # Read data - filter
