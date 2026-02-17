@@ -3910,3 +3910,23 @@ Epoch 82/200
 [1m1/4[0m [32m━━━━━[0m[37m━━━━━━━━━━━━━━━[0m [1m0s[0m 82ms/step - loss: 0.3957 - mae: 0.4965[1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 20ms/step - loss: 0.3975 - mae: 0.4979[1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 70ms/step - loss: 0.3991 - mae: 0.4988 - val_loss: 0.5728 - val_mae: 0.6031
 Epoch 83/200
 [1m1/4[0m [32m━━━━━[0m[37m━━━━━━━━━━━━━━━[0m [1m0s[0m 74ms/step - loss: 0.3968 - mae: 0.4968[1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 20ms/step - loss: 0.3976 - mae: 0.4976[1m4/4[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 66ms/step - loss: 0.3965 - mae: 0.4971 - val_loss: 0.5740 - val_mae: 0.6034
+Model weights saved to _Deep_Learning/Models_trained/Subject_1/EEG/Autoencoders/2026-02-17-11_11_35_Autoencoder_1region_regionspecific_cohen_subject_specific/Split_5/Region_19/model.weights.h5
+History saved to _Deep_Learning/Models_trained/Subject_1/EEG/Autoencoders/2026-02-17-11_11_35_Autoencoder_1region_regionspecific_cohen_subject_specific/Split_5/Region_19/history.csv
+Plots saved to _Deep_Learning/Models_trained/Subject_1/EEG/Autoencoders/2026-02-17-11_11_35_Autoencoder_1region_regionspecific_cohen_subject_specific/Split_5/Region_19/
+[1m1/7[0m [32m━━[0m[37m━━━━━━━━━━━━━━━━━━[0m [1m6s[0m 1s/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 170ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m2s[0m 177ms/step
+Region-wise reconstruction performance saved to _Deep_Learning/Models_trained/Subject_1/EEG/Autoencoders/2026-02-17-11_11_35_Autoencoder_1region_regionspecific_cohen_subject_specific/Split_5/Region_19/region_performance_split_5.csv
+
+
+
+TEMPOO per 5 folds 238.0727291451767 
+
+
+
+
+
+x_train shape: (1650, 128), x_val shape: (209, 128), x_test shape: (209, 128)
+
+
+8 128
+Epoch 1/200
+[1m1/4[0m [32m━━━━━[0m[37m━━━━━━━━━━━━━━━[0m [1m29s[0m 10s/step - loss: 1.0033 - mae: 0.8084[1m3/4[0m [32m━━━━━━━━━━━━━━━[0m[37m━━━━━[0m [1m0s[0m 25ms/step - loss: 1.0027 - mae: 0.8086
