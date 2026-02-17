@@ -38,7 +38,7 @@ path = f"_Deep_Learning/Models_trained/Subject_{subject}/{DataType}/Autoencoders
 Script_name = "_Deep_Learning/Models/Autoencoders/Autoencoder_1region_region_specific.py"
 Additional_Script_name = "_Deep_Learning/Deep_Library_BCI.py"
 
-tag = "Autoencoder_1region_regionspecific_cohen_subject_specific"
+tag = "Autoencoder_1region_region_specific_cohen_subject_specific"
 now = datetime.now()
 formatted_time = now.strftime("%Y-%m-%d-%H_%M_%S")
 tag = formatted_time + "_" + tag # /home/silvia/Documents/GitHub/GAN_Prova/GAN/WGAN/tag_time 
@@ -55,7 +55,7 @@ end = start + (num_windows-1)*shift + input_shape  # seconds where to end to ext
 epochs = 200
 batch_monitor=35
 latent_dim = 16
-BATCH_SIZE = 512
+BATCH_SIZE = 128
 pazienza = 15
 LAST_LAYER_ACTIVATION = "sigmoid"
 tanh = False
