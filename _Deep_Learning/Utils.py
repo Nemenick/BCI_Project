@@ -330,7 +330,7 @@ def evaluate_classification_by_region(model, x_test, y_test, save_name=None, thr
         if len(y_true) == 0:
             continue
         row = {
-            "ROIs": region,
+            "ROIs": region-1,
             "NROIs": len([region]),
             "n_windows": len(y_true),
             "Accuracy": accuracy_score(y_true, y_region_pred),
@@ -377,7 +377,7 @@ def evaluate_autoencoder_by_region(model, x_test, y_test, save_name=None):
         mae_per_sample = np.mean(np.abs(x_true_f - x_pred_f), axis=1)
 
         row = {
-            "ROIs": region,
+            "ROIs": region-1,
             "NROIs": len([region]),
             "n_windows": len(x_true),
             "MSE_mean": mse_per_sample.mean(),

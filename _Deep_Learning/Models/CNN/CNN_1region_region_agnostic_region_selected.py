@@ -153,18 +153,18 @@ for fold_idx, (train_idx, block_idx) in enumerate(kf.split(data, y)):
     y_train = np.repeat(y_train[:,np.newaxis], repeats=n_regions,axis=1)
     # assegno valore in base a ROI, da ±1 a ±68
     for col in range(y_train.shape[1]):
-        y_train[:, col] *= Interesting_regions[col]
+        y_train[:, col] *= Interesting_regions[col+1]
     
     # X_Train shape: (n_trials_train, n_regions, n_timepoints)
     # y_Train shape: (n_trials_train, n_regions) ∈ {-68,...-1,+1,...,+68}
 
     y_val = np.repeat(y_val[:,np.newaxis], repeats=n_regions,axis=1)
     for col in range(y_val.shape[1]):
-        y_val[:, col] *= Interesting_regions[col]
+        y_val[:, col] *= Interesting_regions[col+1]
 
     y_test = np.repeat(y_test[:,np.newaxis], repeats=n_regions,axis=1)
     for col in range(y_test.shape[1]):
-        y_test[:, col] *= Interesting_regions[col]
+        y_test[:, col] *= Interesting_regions[col+1]
 
     x_train = X_train.reshape(-1, X_train.shape[-1]) # shape (n_trials*n_regions, n_timepoints)
     x_val = X_val.reshape(-1, X_val.shape[-1])
