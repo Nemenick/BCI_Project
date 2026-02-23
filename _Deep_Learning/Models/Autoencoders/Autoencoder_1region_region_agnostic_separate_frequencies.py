@@ -39,7 +39,7 @@ Additional_Script_name = "_Deep_Learning/Deep_Library_BCI.py"
 
 separate_frequencies = [[4,25],[20,45]]
 
-tag = "Autoencoder_1region_region_agnostic_separate_frequencies_"
+tag = "Autoencoder_1region_region_agnostic_separate_frequencies_Batch_dimezzato"
 for i in range(len(separate_frequencies)):
     tag += f"{separate_frequencies[i][0]}-{separate_frequencies[i][1]}_"
 tag += "Hz"
@@ -60,7 +60,7 @@ end = start + (num_windows-1)*shift + input_shape  # seconds where to end to ext
 epochs = 200
 batch_monitor=35
 latent_dim = 16
-BATCH_SIZE = 512
+BATCH_SIZE = 256
 pazienza = 10
 LAST_LAYER_ACTIVATION = "sigmoid"
 tanh = False
@@ -109,8 +109,11 @@ data_2_Rest = read_subject(data_folder, DataType, "Baseline",subject)
 data_2_MI = read_subject(data_folder, DataType, "MI",subject)
 data = np.concatenate((data_2_Rest, data_2_MI), axis=0)
 
-data = freq_filter(data, sf=250, freqs=[4,45], type_filter="bandpass") # axis = -1 by default
-data = data[:,:,start:end]        #  data.shape = (192, 68, 748)
+X = []
+for start_freq, end_freq in separate_frequencies:
+    X.append(freq_filter(data, sf=250, freqs=[start_freq,end_freq], type_filter="bandpass") ) # axis = -1 by default 
+data = np.stack(X, axis=-1)         # shape (n_trials, n_regions, n_timepoints, n_freq_bands)
+data = data[:,:,start:end,:]        #  data.shape = (192, 68, 748, freq_bands)
 
 # y shape: (n_trials,) with negative values for Rest and positive for MI
 y = np.concatenate([-np.ones((data_2_Rest.shape[0])), np.ones((data_2_MI.shape[0]))])
@@ -131,7 +134,7 @@ for fold_idx, (train_idx, block_idx) in enumerate(kf.split(data, y)):
 
     X_train = data[train_idx]
     y_train = y[train_idx]
-    # X_Train shape: (n_trials_train, n_regions, n_timepoints)
+    # X_Train shape: (n_trials_train, n_regions, n_timepoints, freq_bands)
     # y_Train shape: (n_trials_train,) ∈ {-1,+1}
 
     X_Block = data[block_idx]
@@ -149,7 +152,7 @@ for fold_idx, (train_idx, block_idx) in enumerate(kf.split(data, y)):
     for col in range(y_train.shape[1]):
         y_train[:, col] *= (col+1)
     
-    # X_Train shape: (n_trials_train, n_regions, n_timepoints)
+    # X_Train shape: (n_trials_train, n_regions, n_timepoints, freq_bands)
     # y_Train shape: (n_trials_train, n_regions) ∈ {-68,...-1,+1,...,+68}
 
     y_val = np.repeat(y_val[:,np.newaxis], repeats=n_regions,axis=1)
@@ -160,25 +163,32 @@ for fold_idx, (train_idx, block_idx) in enumerate(kf.split(data, y)):
     for col in range(y_test.shape[1]):
         y_test[:, col] *= (col+1)
 
-    x_train = X_train.reshape(-1, X_train.shape[-1]) # shape (n_trials*n_regions, n_timepoints)
-    x_val = X_val.reshape(-1, X_val.shape[-1])
-    x_test = X_test.reshape(-1, X_test.shape[-1])
+    x_train = X_train.reshape(-1, X_train.shape[-2],  X_train.shape[-1]) # shape (n_trials*n_regions, n_timepoints, freq_bands)
+    x_val = X_val.reshape(-1, X_val.shape[-2],  X_val.shape[-1])
+    x_test = X_test.reshape(-1, X_test.shape[-2],  X_test.shape[-1])
 
     y_train = y_train.reshape(-1)
     y_val = y_val.reshape(-1)
     y_test = y_test.reshape(-1)
 
-    # x_train shape: (n_trials_train * n_regions, n_timepoints)
+    # x_train shape: (n_trials_train * n_regions, n_timepoints, freq_bands)
     # y_train shape: (n_trials_train * n_regions,) ∈ {-68,...,-1,+1,...,+68}
 
-    x_train, y_train = windowize(x_train, y_train, win_len=input_shape, shift=shift)
-    x_val, y_val     = windowize(x_val, y_val, win_len=input_shape, shift=shift)
-    x_test, y_test   = windowize(x_test, y_test, win_len=input_shape, shift=shift)
-    # shape: x -> (n_windows, timepoints) ; y -> (n_windows,)
+    x_trains = []; x_vals = []; x_tests = []
+
+    for num_freq in range(x_train.shape[-1]):
+        x_train_freq, Y_train = windowize(x_train[:,:, num_freq], y_train, win_len=input_shape, shift=shift)
+        x_val_freq, Y_val     = windowize(x_val[:,:, num_freq], y_val, win_len=input_shape, shift=shift)
+        x_test_freq, Y_test   = windowize(x_test[:,:, num_freq], y_test, win_len=input_shape, shift=shift)
+        x_trains.append(x_train_freq);  x_vals.append(x_val_freq);  x_tests.append(x_test_freq); 
+    x_train = np.stack(x_trains, axis=-1)
+    x_val = np.stack(x_vals, axis=-1)
+    x_test = np.stack(x_tests, axis=-1)
+    y_train = Y_train; y_val = Y_val; y_test = Y_test
+    # shape: x -> (n_windows, timepoints, freq_bands) ; y -> (n_windows,)
     # y is ± region index (SIGN is negative for REST and positive for MI; absolute value is region index)
-
-
- 
+     
+      
     print(f"\n\nx_train shape: {x_train.shape}, x_val shape: {x_val.shape}, x_test shape: {x_test.shape}\n\n")
 
     ###################################################################################################################################
@@ -186,18 +196,19 @@ for fold_idx, (train_idx, block_idx) in enumerate(kf.split(data, y)):
     # Optimizing EEG ICA Decomposition with Machine Learning: A CNN-Based Alternative to EEGLAB for Fast and Scalable Brain Activity Analysis
     # Assessing the Role of EEG Biosignal Preprocessing to Enhance Multiscale Fuzzy Entropy in Alzheimer’s Disease Detection
     # (when applying on multiple subjects) Cross-Subject EEG-Based Emotion Recognition Through Neural Networks With Stratified Normalization 
-
-    scaler = RegionWiseStandardizer()
-    x_train = scaler.fit_transform(x_train, y_train)
-    x_val = scaler.transform(x_val, y_val)
-    x_test = scaler.transform(x_test, y_test)
-    # scaler = TraceWiseStandardizer()
-    # x_train = scaler.transform(x_train)
-    # x_val = scaler.transform(x_val)
-    # x_test = scaler.transform(x_test)
-    x_train = x_train[..., np.newaxis]  
-    x_val = x_val[..., np.newaxis]  
-    x_test = x_test[..., np.newaxis] 
+    for num_freq in range(x_train.shape[-1]):
+        scaler = RegionWiseStandardizer()
+        # fit requires a (n_samples, n_timepoints) shaped-array
+        x_train[:,:, num_freq] = scaler.fit_transform(x_train[:,:, num_freq], y_train)
+        x_val[:,:, num_freq] = scaler.transform(x_val[:,:, num_freq], y_val)
+        x_test[:,:, num_freq] = scaler.transform(x_test[:,:, num_freq], y_test)
+        # scaler = TraceWiseStandardizer()
+        # x_train[:,:, num_freq] = scaler.transform(x_train[:,:, num_freq])
+        # x_val[:,:, num_freq] = scaler.transform(x_val[:,:, num_freq])
+        # x_test[:,:, num_freq] = scaler.transform(x_test[:,:, num_freq])
+    # x_train = x_train[..., np.newaxis]  
+    # x_val = x_val[..., np.newaxis]  
+    # x_test = x_test[..., np.newaxis] 
 
     # reconstruction loss: MSE
     # reconstruction metric: MAE
@@ -205,7 +216,7 @@ for fold_idx, (train_idx, block_idx) in enumerate(kf.split(data, y)):
     # classification loss: binary_crossentropy
     # classification metric: accuracy
 
-    model = MultiTaskModel(use_decoder=True, use_classifier=False)
+    model = MultiTaskModel(use_decoder=True, use_classifier=False, input_shape = (128,2))
     optimizer = optimizers.Adam(epsilon=1e-04)
     model.compile_cases(optimizer, loss_reconstruction="MSE", loss_classification=None)
 
@@ -218,7 +229,7 @@ for fold_idx, (train_idx, block_idx) in enumerate(kf.split(data, y)):
     # EarlyStopping comments:
     # val_loss in multi-output monitors the total loss (weighted);
     # patience 10 is good For Classification only
-    plot_random_reconstructions(model, x_test[:,:,0], n_samples=10, save_dir=savedir+f"Split_{split_num}/reconstruction_plots_{split_num}")
+    plot_random_reconstructions(model, x_test[:,:,:], n_samples=10, save_dir=savedir+f"Split_{split_num}/reconstruction_plots_{split_num}")
 
     save_training_results(model, storia, savedir+f"Split_{split_num}/")
 
