@@ -39,7 +39,7 @@ Additional_Script_name = "_Deep_Learning/Deep_Library_BCI.py"
 
 separate_frequencies = [[4,25],[20,45]]
 
-tag = "Autoencoder_1region_region_agnostic_separate_frequencies_Batch_dimezzato"
+tag = "Autoencoder_1region_region_agnostic_separate_frequencies_"
 for i in range(len(separate_frequencies)):
     tag += f"{separate_frequencies[i][0]}-{separate_frequencies[i][1]}_"
 tag += "Hz"
@@ -60,7 +60,7 @@ end = start + (num_windows-1)*shift + input_shape  # seconds where to end to ext
 epochs = 200
 batch_monitor=35
 latent_dim = 16
-BATCH_SIZE = 256
+BATCH_SIZE = 512
 pazienza = 10
 LAST_LAYER_ACTIVATION = "sigmoid"
 tanh = False
