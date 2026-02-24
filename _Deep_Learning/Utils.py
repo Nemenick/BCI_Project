@@ -11,7 +11,7 @@ from sklearn.metrics import (accuracy_score, precision_score, recall_score, f1_s
 
 ############################# Simple functions #############################
 
-def freq_filter(signal,sf,freqs,type_filter="bandpass", order_filter=4):
+def freq_filter(signal,sf,freqs,type_filter="bandpass", order_filter=4, axis=-1):
     """ 
     sf: sampling rate of the input waveform
     freqs: list of frequences (e.g. 2 for bandpass), or single float (e.g. for highpass)
@@ -20,7 +20,7 @@ def freq_filter(signal,sf,freqs,type_filter="bandpass", order_filter=4):
 
     freqs=np.array(freqs)
     filt_b1,filt_a1=sc_sig.butter(order_filter,freqs/(sf/2),btype=type_filter)
-    filtered_sig=sc_sig.filtfilt(filt_b1,filt_a1,sc_sig.detrend(signal)) # both detrend and filtfilt have axis = -1 by default OK!
+    filtered_sig=sc_sig.filtfilt(filt_b1,filt_a1,sc_sig.detrend(signal, axis=axis), axis=axis) # both detrend and filtfilt have axis = -1 by default OK!
     return filtered_sig
 
 
@@ -432,7 +432,7 @@ def aggregate_columns_dfs(dfs,  cols_to_aggregate=["Accuracy", "Precision", "Rec
     return pd.DataFrame(aggregated_rows)
 
 
-def plot_random_reconstructions( model, x_test, sf=250, freqs_filt=(4, 20), n_samples=10, save_dir="reconstruction_plots", random_state=None):
+def plot_random_reconstructions( model, x_test, sf=250, freqs_filt=(4, 20), n_samples=10, save_dir="reconstruction_plots", random_state=None, freqs_filt_axis=-1):
     """
     Plot original, reconstructed, and filtered traces for random samples.
 
@@ -451,7 +451,7 @@ def plot_random_reconstructions( model, x_test, sf=250, freqs_filt=(4, 20), n_sa
 
     # Pre-compute filtered signals
     if freqs_filt is not None:
-        x_filt = freq_filter(x_test, sf=sf, freqs=list(freqs_filt), type_filter="bandpass")
+        x_filt = freq_filter(x_test, sf=sf, freqs=list(freqs_filt), type_filter="bandpass", axis=freqs_filt_axis)
 
     lw = 2.3
 
@@ -459,24 +459,23 @@ def plot_random_reconstructions( model, x_test, sf=250, freqs_filt=(4, 20), n_sa
         # --- reconstruction (EXACTLY like your snippet)
         x_in = x_test[idx:idx+1]
         x_rec = model(x_in).numpy().reshape(x_in.shape)
-        fname = os.path.join(save_dir, f"reconstruction_{k:02d}_idx{idx}.png")
-        with open(fname, "w") as f: 
-            f.write("*\n")
 
-        plt.figure(figsize=(10, 4))
-        plt.plot(x_test[idx], linewidth=lw, label="original", color="C0")
-        plt.plot(x_rec[0], linewidth=lw, label="reconstructed", color="C1")
-        plt.plot(x_filt[idx], linewidth=lw, label="filtered (4–20 Hz)", color="C2")
+        for _ in range(x_rec.shape[-1]):
+            plt.figure(figsize=(10, 4))
+            plt.plot(x_test[idx,:,_], linewidth=lw, label="original", color="C0")
+            plt.plot(x_rec[0, :, _], linewidth=lw, label="reconstructed", color="C1")
+            if freqs_filt is not None:
+                plt.plot(x_filt[idx, :, _], linewidth=lw, label=f"filtered {freqs_filt[0]}-{freqs_filt[1]} Hz)", color="C2")
 
-        plt.title(f"Sample {idx}")
-        plt.xlabel("Time")
-        plt.ylabel("Amplitude")
-        plt.legend()
-        plt.tight_layout()
+            plt.title(f"Sample {idx}")
+            plt.xlabel("Time")
+            plt.ylabel("Amplitude")
+            plt.legend()
+            plt.tight_layout()
 
-        fname = os.path.join(save_dir, f"reconstruction_{k:02d}_idx{idx}.png")
-        plt.savefig(fname, dpi=150)
-        plt.close()
+            fname = os.path.join(save_dir, f"reconstruction_{k:02d}_idx{idx}_freq_band_n_{_+1}.png")
+            plt.savefig(fname, dpi=150)
+            plt.close()
 
 
 ################################ Deprecated code ################################

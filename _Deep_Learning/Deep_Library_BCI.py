@@ -73,8 +73,9 @@ class MultiTaskModel(tf.keras.Model):
         x = layers.Reshape((h, c))(x)
 
         for filters in reversed(self.conv_filters):
-            x = layers.UpSampling1D()(x)
-            x = layers.Conv1D(filters, self.kernel_size, padding="same")(x)
+            # x = layers.UpSampling1D()(x)
+            # x = layers.Conv1D(filters, self.kernel_size, padding="same")(x)
+            x = layers.Conv1DTranspose(filters, self.kernel_size, strides=2, padding="same")(x)
             x = self.activation_fn()(x)
 
         outputs = layers.Conv1D(
