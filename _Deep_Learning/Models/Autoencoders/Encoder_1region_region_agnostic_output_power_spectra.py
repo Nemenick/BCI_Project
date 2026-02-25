@@ -18,7 +18,7 @@ import sys
 sys.path.append(os.path.abspath("Codes"))
 sys.path.append(os.path.abspath("_Deep_Learning"))
 
-from Deep_Library_BCI import MultiTaskModel
+from Deep_Library_BCI import MultiTaskModel_PowerSpectra
 from Utils import (freq_filter, windowize, save_training_results, plot_random_reconstructions,
                    evaluate_autoencoder_by_region, aggregate_columns_dfs)
 Normalization = "RegionWise" # "RegionWise" or "TraceWise" or "mediatrace,stdregionwise"
@@ -199,7 +199,7 @@ for fold_idx, (train_idx, block_idx) in enumerate(kf.split(data, y)):
     # classification loss: binary_crossentropy
     # classification metric: accuracy
 
-    model = MultiTaskModel(use_decoder=True, use_classifier=False)
+    model = MultiTaskModel_PowerSpectra(use_decoder=True, use_classifier=False)
     optimizer = optimizers.Adam(epsilon=1e-04)
     model.compile_cases(optimizer, loss_reconstruction="MSE", loss_classification=None)
 
@@ -207,7 +207,7 @@ for fold_idx, (train_idx, block_idx) in enumerate(kf.split(data, y)):
     # labels_val = (y_val > 0).astype(int)
     # labels_test = (y_test > 0).astype(int)
 
-    storia = model.fit_cases(x_train, x_val, epochs=epochs, batch_size=BATCH_SIZE, 
+    storia = model.fit_cases(x_train, power_train, x_val, power_val, epochs=epochs, batch_size=BATCH_SIZE, 
                                 callbacks=EarlyStopping(monitor="val_loss", patience=pazienza,  restore_best_weights=True, start_from_epoch=20))
     # EarlyStopping comments:
     # val_loss in multi-output monitors the total loss (weighted);

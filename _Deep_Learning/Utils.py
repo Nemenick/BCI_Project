@@ -464,7 +464,7 @@ def plot_random_reconstructions( model, x_test, sf=250, freqs_filt=(4, 20), n_sa
             plt.figure(figsize=(10, 4))
             plt.plot(x_test[idx,:,_], linewidth=lw, label="original", color="C0")
             plt.plot(x_rec[0, :, _], linewidth=lw, label="reconstructed", color="C1")
-            if freqs_filt is not None:
+            if freqs_filt is not None and _ == 0:
                 plt.plot(x_filt[idx, :, _], linewidth=lw, label=f"filtered {freqs_filt[0]}-{freqs_filt[1]} Hz)", color="C2")
 
             plt.title(f"Sample {idx}")
