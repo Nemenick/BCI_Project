@@ -397,6 +397,54 @@ def evaluate_autoencoder_by_region(model, x_test, y_test, save_name=None):
 
     return df 
 
+def evaluate_encoder_decoder_spectra_by_region(model, x_test, psd_test, y_test, save_name=None):
+    """
+    Compute reconstruction performance grouped by abs(y_test).
+    """
+
+    # Reconstruct
+    raise Exception("Sorry, non lo hai ancora implementato! eheh")
+    x_recon = model.predict(x_test)
+
+    results = []
+
+    for region in np.unique(np.abs(y_test)):
+        mask = np.abs(y_test) == region
+        x_true = x_test[mask]
+        x_pred = x_recon[mask]
+
+        if len(x_true) == 0:
+            continue
+
+        # Flatten per-sample for error computation
+        x_true_f = x_true.reshape(len(x_true), -1)
+        x_pred_f = x_pred.reshape(len(x_pred), -1)
+
+        # Per-sample errors
+        mse_per_sample = np.mean((x_true_f - x_pred_f) ** 2, axis=1)
+        mae_per_sample = np.mean(np.abs(x_true_f - x_pred_f), axis=1)
+
+        row = {
+            "ROIs": region-1,
+            "NROIs": len([region]),
+            "n_windows": len(x_true),
+            "MSE_mean": mse_per_sample.mean(),
+            "MSE_std": mse_per_sample.std(),
+            "MAE_mean": mae_per_sample.mean(),
+            "MAE_std": mae_per_sample.std(),
+        }
+
+        results.append(row)
+
+    df = pd.DataFrame(results).sort_values("ROIs").reset_index(drop=True)
+
+    # Save
+    if save_name is not None:
+        df.to_csv(save_name, index=False)
+        print(f"Region-wise reconstruction performance saved to {save_name}")
+
+    return df
+
 def aggregate_columns_dfs(dfs,  cols_to_aggregate=["Accuracy", "Precision", "Recall", "F1", "n_windows"]
 ):
     """
@@ -444,6 +492,53 @@ def plot_random_reconstructions( model, x_test, sf=250, freqs_filt=(4, 20), n_sa
         Sampling frequency.
     """
 
+    os.makedirs(save_dir, exist_ok=True)
+    with open(os.path.join(save_dir, ".gitignore"), "w") as f:
+        f.write("*")
+
+    rng = np.random.default_rng(random_state)
+    indices = rng.choice(len(x_test), size=n_samples, replace=False)
+
+    # Pre-compute filtered signals
+    if freqs_filt is not None:
+        x_filt = freq_filter(x_test, sf=sf, freqs=list(freqs_filt), type_filter="bandpass", axis=freqs_filt_axis)
+
+    lw = 2.3
+
+    for k, idx in enumerate(indices):
+        # --- reconstruction (EXACTLY like your snippet)
+        x_in = x_test[idx:idx+1]
+        x_rec = model(x_in).numpy().reshape(x_in.shape)
+
+        for _ in range(x_rec.shape[-1]):
+            plt.figure(figsize=(10, 4))
+            plt.plot(x_test[idx,:,_], linewidth=lw, label="original", color="C0")
+            plt.plot(x_rec[0, :, _], linewidth=lw, label="reconstructed", color="C1")
+            if freqs_filt is not None and _ == 0:
+                plt.plot(x_filt[idx, :, _], linewidth=lw, label=f"filtered {freqs_filt[0]}-{freqs_filt[1]} Hz)", color="C2")
+
+            plt.title(f"Sample {idx}")
+            plt.xlabel("Time")
+            plt.ylabel("Amplitude")
+            plt.legend()
+            plt.tight_layout()
+
+            fname = os.path.join(save_dir, f"reconstruction_{k:02d}_idx{idx}_freq_band_n_{_+1}.png")
+            plt.savefig(fname, dpi=150)
+            plt.close()
+
+def plot_random_PowerSpectra_reconstructed( model, x_test, psd_test, sf=250, n_samples=10, save_dir="reconstruction_plots", random_state=224, freqs_filt_axis=-1):
+    """
+    Plot original, reconstructed, and filtered traces for random samples.
+
+    Parameters
+    ----------
+    model : keras / tf model Trained autoencoder.
+    x_test : np.ndarray  Shape: (n_samples, n_times)
+    sf : float
+        Sampling frequency.
+    """
+    raise Exception("Sorry, non lo hai ancora implementato! eheh")
     os.makedirs(save_dir, exist_ok=True)
     with open(os.path.join(save_dir, ".gitignore"), "w") as f:
         f.write("*")

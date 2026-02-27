@@ -223,9 +223,9 @@ class MultiTaskModel_PowerSpectra(tf.keras.Model):
             x = layers.Conv1D(filters, self.kernel_size, padding="same")(x)
             # x = layers.BatchNormalization()(x)            
             x = self.activation_fn()(x)
-            x = layers.MaxPooling1D()(x)                        # downsample by 2 n_filters times (4-> shape is 128/16 = 8)
+            x = layers.AveragePooling1D()(x)                        # downsample by 2 n_filters times (4-> shape is 128/16 = 8)
             if n_layer < len(self.conv_filters) -1 :
-                x = layers.Dropout(0.3)(x)
+                x = layers.Dropout(0.15)(x)
 
         x = layers.Flatten()(x) # 8 * 128 = 1024
 
