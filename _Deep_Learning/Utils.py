@@ -445,6 +445,8 @@ def plot_random_reconstructions( model, x_test, sf=250, freqs_filt=(4, 20), n_sa
     """
 
     os.makedirs(save_dir, exist_ok=True)
+    with open(os.path.join(save_dir, ".gitignore"), "w") as f:
+        f.write("*")
 
     rng = np.random.default_rng(random_state)
     indices = rng.choice(len(x_test), size=n_samples, replace=False)
