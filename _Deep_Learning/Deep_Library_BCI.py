@@ -40,7 +40,7 @@ class MultiTaskModel(tf.keras.Model):
         for n_layer in range(len(self.conv_filters)):
             filters = self.conv_filters[n_layer]
             x = layers.Conv1D(filters, self.kernel_size, padding="same")(x)
-            # x = layers.BatchNormalization()(x)            
+            x = layers.BatchNormalization()(x)      # TODO vedi qui      
             x = self.activation_fn()(x)
             x = layers.MaxPooling1D()(x)                        # downsample by 2 n_filters times (4-> shape is 128/16 = 8)
             if n_layer < len(self.conv_filters) -1 :
