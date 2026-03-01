@@ -403,31 +403,31 @@ def evaluate_encoder_decoder_spectra_by_region(model, x_test, psd_test, y_test, 
     """
 
     # Reconstruct
-    raise Exception("Sorry, non lo hai ancora implementato! eheh")
-    x_recon = model.predict(x_test)
+    raise Exception("Sorry, non lo hai ancora implementato per bene! Ricontrolla tutto")
+    spectra_recon = model.predict(x_test)
 
     results = []
 
     for region in np.unique(np.abs(y_test)):
         mask = np.abs(y_test) == region
-        x_true = x_test[mask]
-        x_pred = x_recon[mask]
+        spectra_true = psd_test[mask]
+        spectra_pred = spectra_recon[mask]
 
-        if len(x_true) == 0:
+        if len(spectra_true) == 0:
             continue
 
         # Flatten per-sample for error computation
-        x_true_f = x_true.reshape(len(x_true), -1)
-        x_pred_f = x_pred.reshape(len(x_pred), -1)
+        spectra_true_f = spectra_true.reshape(len(spectra_true), -1)
+        spectra_pred_f = spectra_pred.reshape(len(spectra_pred), -1)
 
         # Per-sample errors
-        mse_per_sample = np.mean((x_true_f - x_pred_f) ** 2, axis=1)
-        mae_per_sample = np.mean(np.abs(x_true_f - x_pred_f), axis=1)
+        mse_per_sample = np.mean((spectra_true_f - spectra_pred) ** 2, axis=1)
+        mae_per_sample = np.mean(np.abs(spectra_true_f - spectra_pred_f), axis=1)
 
         row = {
             "ROIs": region-1,
             "NROIs": len([region]),
-            "n_windows": len(x_true),
+            "n_windows": len(spectra_true),
             "MSE_mean": mse_per_sample.mean(),
             "MSE_std": mse_per_sample.std(),
             "MAE_mean": mae_per_sample.mean(),
@@ -527,7 +527,7 @@ def plot_random_reconstructions( model, x_test, sf=250, freqs_filt=(4, 20), n_sa
             plt.savefig(fname, dpi=150)
             plt.close()
 
-def plot_random_PowerSpectra_reconstructed( model, x_test, psd_test, sf=250, n_samples=10, save_dir="reconstruction_plots", random_state=224, freqs_filt_axis=-1):
+def plot_random_PowerSpectra_reconstructed( model, x_test, psd_test, n_samples=10, save_dir="reconstructed_spectra", random_state=224):
     """
     Plot original, reconstructed, and filtered traces for random samples.
 
@@ -538,7 +538,8 @@ def plot_random_PowerSpectra_reconstructed( model, x_test, psd_test, sf=250, n_s
     sf : float
         Sampling frequency.
     """
-    raise Exception("Sorry, non lo hai ancora implementato! eheh")
+    raise Exception("Sorry, non lo hai ancora implementato tutto! (controlla quanti axis ho in psd_test)")
+
     os.makedirs(save_dir, exist_ok=True)
     with open(os.path.join(save_dir, ".gitignore"), "w") as f:
         f.write("*")
@@ -546,31 +547,26 @@ def plot_random_PowerSpectra_reconstructed( model, x_test, psd_test, sf=250, n_s
     rng = np.random.default_rng(random_state)
     indices = rng.choice(len(x_test), size=n_samples, replace=False)
 
-    # Pre-compute filtered signals
-    if freqs_filt is not None:
-        x_filt = freq_filter(x_test, sf=sf, freqs=list(freqs_filt), type_filter="bandpass", axis=freqs_filt_axis)
 
     lw = 2.3
 
     for k, idx in enumerate(indices):
         # --- reconstruction (EXACTLY like your snippet)
         x_in = x_test[idx:idx+1]
-        x_rec = model(x_in).numpy().reshape(x_in.shape)
+        power_rec = model(x_in).numpy().reshape(x_in.shape)
 
-        for _ in range(x_rec.shape[-1]):
+        for _ in range(power_rec.shape[-1]):
             plt.figure(figsize=(10, 4))
-            plt.plot(x_test[idx,:,_], linewidth=lw, label="original", color="C0")
-            plt.plot(x_rec[0, :, _], linewidth=lw, label="reconstructed", color="C1")
-            if freqs_filt is not None and _ == 0:
-                plt.plot(x_filt[idx, :, _], linewidth=lw, label=f"filtered {freqs_filt[0]}-{freqs_filt[1]} Hz)", color="C2")
+            plt.plot(psd_test[idx,:,_], linewidth=lw, label="original", color="C0")
+            plt.plot(power_rec[0, :, _], linewidth=lw, label="reconstructed", color="C1")
 
             plt.title(f"Sample {idx}")
-            plt.xlabel("Time")
+            plt.xlabel("Freq_bin")
             plt.ylabel("Amplitude")
             plt.legend()
             plt.tight_layout()
 
-            fname = os.path.join(save_dir, f"reconstruction_{k:02d}_idx{idx}_freq_band_n_{_+1}.png")
+            fname = os.path.join(save_dir, f"Spectra_reconstruced_{k:02d}_idx{idx}_freq_band_n_{_+1}.png")
             plt.savefig(fname, dpi=150)
             plt.close()
 
