@@ -238,7 +238,7 @@ for fold_idx, (train_idx, block_idx) in enumerate(kf.split(data, y)):
     tmp_df["WindowsNormalization"] = Normalization
     evaluated_by_regions_dataframes.append(tmp_df)
     
-    plot_random_reconstructions(model, x_test[:,:,:], METTI ASSE su cui filtri = 1 n_samples=10, sf=sampling_hz, save_dir=savedir+f"Split_{split_num}/reconstruction_plots_{split_num}")
+    plot_random_reconstructions(model, x_test[:,:,:], n_samples=10, sf=sampling_hz, save_dir=savedir+f"Split_{split_num}/reconstruction_plots_{split_num}")
 
 aggregated_df = aggregate_columns_dfs(evaluated_by_regions_dataframes, cols_to_aggregate=["n_windows", "MSE_mean", "MSE_std", "MAE_mean", "MAE_std"])
 aggregated_df.to_pickle(f"{savedir}aggregated_region_performance.pkl")
