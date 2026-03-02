@@ -35,7 +35,7 @@ path = "_Deep_Learning/Models_trained/"
 Script_name = "_Deep_Learning/Models/Autoencoders/Autoencoder_1region_region_agnostic_upsampled_signals.py"
 Additional_Script_name = "_Deep_Learning/Deep_Library_BCI.py"
 
-tag = "Autoencoder_1region_region_agnostic_upsampled_signals"
+tag = "Autoencoder_1region_region_agnostic_upsampled_signals_4x"
 now = datetime.now()
 formatted_time = now.strftime("%Y-%m-%d-%H_%M_%S")
 tag = formatted_time + "_" + tag # /home/silvia/Documents/GitHub/GAN_Prova/GAN/WGAN/tag_time 
@@ -103,7 +103,7 @@ data_2_MI = read_subject(data_folder, DataType, "MI",subject)
 data = np.concatenate((data_2_Rest, data_2_MI), axis=0)
 
 ###################################################################################################################################
-data = resample_poly(data,2,1, axis=-1)
+data = resample_poly(data,4,1, axis=-1)
 
 data = freq_filter(data, sf=sampling_hz, freqs=[4,45], type_filter="bandpass") # axis = -1 by default
 data = data[:,:,start:end]        #  data.shape = (192, 68, 748)
