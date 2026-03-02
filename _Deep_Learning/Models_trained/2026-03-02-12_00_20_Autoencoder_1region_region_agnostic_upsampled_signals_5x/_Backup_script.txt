@@ -35,7 +35,7 @@ path = "_Deep_Learning/Models_trained/"
 Script_name = "_Deep_Learning/Models/Autoencoders/Autoencoder_1region_region_agnostic_upsampled_signals.py"
 Additional_Script_name = "_Deep_Learning/Deep_Library_BCI.py"
 
-tag = "Autoencoder_1region_region_agnostic_upsampled_signals_4x"
+tag = "Autoencoder_1region_region_agnostic_upsampled_signals_5x"
 now = datetime.now()
 formatted_time = now.strftime("%Y-%m-%d-%H_%M_%S")
 tag = formatted_time + "_" + tag # /home/silvia/Documents/GitHub/GAN_Prova/GAN/WGAN/tag_time 
@@ -103,7 +103,7 @@ data_2_MI = read_subject(data_folder, DataType, "MI",subject)
 data = np.concatenate((data_2_Rest, data_2_MI), axis=0)
 
 ###################################################################################################################################
-data = resample_poly(data,4,1, axis=-1)
+data = resample_poly(data,5,1, axis=-1)
 
 data = freq_filter(data, sf=sampling_hz, freqs=[4,45], type_filter="bandpass") # axis = -1 by default
 data = data[:,:,start:end]        #  data.shape = (192, 68, 748)
@@ -238,7 +238,7 @@ for fold_idx, (train_idx, block_idx) in enumerate(kf.split(data, y)):
     tmp_df["WindowsNormalization"] = Normalization
     evaluated_by_regions_dataframes.append(tmp_df)
     
-    plot_random_reconstructions(model, x_test[:,:,:], METTI ASSE su cui filtri = 1 n_samples=10, sf=sampling_hz, save_dir=savedir+f"Split_{split_num}/reconstruction_plots_{split_num}")
+    plot_random_reconstructions(model, x_test[:,:,:], n_samples=10, sf=sampling_hz, save_dir=savedir+f"Split_{split_num}/reconstruction_plots_{split_num}")
 
 aggregated_df = aggregate_columns_dfs(evaluated_by_regions_dataframes, cols_to_aggregate=["n_windows", "MSE_mean", "MSE_std", "MAE_mean", "MAE_std"])
 aggregated_df.to_pickle(f"{savedir}aggregated_region_performance.pkl")
