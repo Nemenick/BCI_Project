@@ -1,4 +1,4 @@
-# nohup .venv/bin/python _Deep_Learning/Models/Autoencoders/Autoencoder_1region_region_agnostic_upsampled_signals.py &> _Deep_Learning/LOGS/Autoencoder_out_2026_01_16_10_30.txt
+# nohup .venv/bin/python _Deep_Learning/Models/Autoencoders/Autoencoder_1region_region_agnostic_upsampled_signals.py &> _Deep_Learning/LOGS/Autoencoder_out_2026_02_16_10_30.txt
 
 import time
 from scipy.signal import resample_poly
@@ -24,6 +24,8 @@ from Utils import (freq_filter, windowize, save_training_results, plot_random_re
 Normalization = "RegionWise" # "RegionWise" or "TraceWise" or "mediatrace,stdregionwise"
 from Utils import TraceWiseStandardizer, RegionWiseStandardizer
 
+subject = 2
+DataType = "EEG"
 
 sys.path.append(os.path.abspath("Codes"))
 from BCI_Library import read_subject
@@ -31,11 +33,11 @@ data_folder="Data/"
 today = date.today()
 # print(f"\n\nCurrent working directory: {os.getcwd()}") # Current working directory: /home/silvia/Documents/GitHub/BCI_Project
 
-path = "_Deep_Learning/Models_trained/"
+path = f"_Deep_Learning/Models_trained/Subject_{subject}/{DataType}/Autoencoders/"
 Script_name = "_Deep_Learning/Models/Autoencoders/Autoencoder_1region_region_agnostic_upsampled_signals.py"
 Additional_Script_name = "_Deep_Learning/Deep_Library_BCI.py"
 
-tag = "Autoencoder_1region_region_agnostic_upsampled_signals_5x"
+tag = "Autoencoder_1region_region_agnostic_upsampled_signals_4x"
 now = datetime.now()
 formatted_time = now.strftime("%Y-%m-%d-%H_%M_%S")
 tag = formatted_time + "_" + tag # /home/silvia/Documents/GitHub/GAN_Prova/GAN/WGAN/tag_time 
@@ -92,9 +94,6 @@ with open(savedir+'_Backup_Library.py', "w") as f:
 # COME NORMALIZZARE? (VAEGG esclude tutti quelli superiori a 400 microV; BrainOmni eachchannel is normalised to zero mean and unitvariance 
 # at sample level)
 
-subject = 2
-DataType = "EEG"
-
 ###################################################################################################################################
 # Read data - filter
 # TODO ATTENTION to put Rest before, then MI (for create_labels function)  
@@ -103,7 +102,7 @@ data_2_MI = read_subject(data_folder, DataType, "MI",subject)
 data = np.concatenate((data_2_Rest, data_2_MI), axis=0)
 
 ###################################################################################################################################
-data = resample_poly(data,5,1, axis=-1)
+data = resample_poly(data,4,1, axis=-1)
 
 data = freq_filter(data, sf=sampling_hz, freqs=[4,45], type_filter="bandpass") # axis = -1 by default
 data = data[:,:,start:end]        #  data.shape = (192, 68, 748)
@@ -238,7 +237,7 @@ for fold_idx, (train_idx, block_idx) in enumerate(kf.split(data, y)):
     tmp_df["WindowsNormalization"] = Normalization
     evaluated_by_regions_dataframes.append(tmp_df)
     
-    plot_random_reconstructions(model, x_test[:,:,:], n_samples=10, sf=sampling_hz, save_dir=savedir+f"Split_{split_num}/reconstruction_plots_{split_num}")
+    plot_random_reconstructions(model, x_test[:,:,:], freqs_filt_axis=1, n_samples=10, sf=sampling_hz, save_dir=savedir+f"Split_{split_num}/reconstruction_plots_{split_num}")
 
 aggregated_df = aggregate_columns_dfs(evaluated_by_regions_dataframes, cols_to_aggregate=["n_windows", "MSE_mean", "MSE_std", "MAE_mean", "MAE_std"])
 aggregated_df.to_pickle(f"{savedir}aggregated_region_performance.pkl")

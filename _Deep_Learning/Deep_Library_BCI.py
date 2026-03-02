@@ -185,7 +185,7 @@ class MultiTaskModel_PowerSpectra(tf.keras.Model):
     def __init__(
         self,
         input_shape = (128,1),
-        output_shape = (37),
+        output_shape = None,
         latent_dim=16,
         conv_filters=(16, 64, 256, 128),
         kernel_size=3,
@@ -223,7 +223,7 @@ class MultiTaskModel_PowerSpectra(tf.keras.Model):
             x = layers.Conv1D(filters, self.kernel_size, padding="same")(x)
             # x = layers.BatchNormalization()(x)            
             x = self.activation_fn()(x)
-            x = layers.AveragePooling1D()(x)                        # downsample by 2 n_filters times (4-> shape is 128/16 = 8)
+            x = layers.AveragePooling1D(pool_size=2)(x)                        # downsample by 2 n_filters times (4-> shape is 128/16 = 8)
             if n_layer < len(self.conv_filters) -1 :
                 x = layers.Dropout(0.15)(x)
 
@@ -241,13 +241,15 @@ class MultiTaskModel_PowerSpectra(tf.keras.Model):
     def _build_decoder(self):
 
         latent_inputs = layers.Input(shape=(self.latent_dim,), name="decoder_input")
-        
-        x = layers.Dense(32)(latent_inputs)
-        x = self.activation_fn()(x)
+        x = layers.Dense(16*128)(latent_inputs)
+        x = layers.Reshape((16, 128))(x)
 
-        for _ in range(2):
-            x = layers.Dense(64)(x)
+        for num,filters in enumerate(reversed(self.conv_filters[0:2])):
+            if num == 0:
+                x = layers.UpSampling1D()(x)
+            x = layers.Conv1D(filters, self.kernel_size, padding="same")(x)
             x = self.activation_fn()(x)
+        x = layers.Flatten()(x)
         x = layers.Dense(self.output_shape)(x)
         outputs = layers.Activation("linear", name="reconstruction")(x)
 
