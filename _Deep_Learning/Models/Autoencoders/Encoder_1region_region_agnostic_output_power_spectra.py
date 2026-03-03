@@ -20,8 +20,8 @@ sys.path.append(os.path.abspath("Codes"))
 sys.path.append(os.path.abspath("_Deep_Learning"))
 
 from Deep_Library_BCI import MultiTaskModel_PowerSpectra
-from Utils import (freq_filter, windowize, save_training_results, plot_random_reconstructions,
-                   evaluate_autoencoder_by_region, aggregate_columns_dfs)
+from Utils import (freq_filter, windowize, save_training_results, plot_random_PowerSpectra_reconstructed,
+                   evaluate_encoder_decoder_spectra_by_region, aggregate_columns_dfs)
 Normalization = "RegionWise" # "RegionWise" or "TraceWise" or "mediatrace,stdregionwise"
 from Utils import TraceWiseStandardizer, RegionWiseStandardizer
 
@@ -47,7 +47,7 @@ savedir = path+tag+"/"
 log_spectra = False             # if compute log of spectra after
 fmin_spectra = 8                # min freq considered in spectra (output)
 fmax_spectra = 30               # max freq considered in spectra (output)
-bandwidth_spectra = 4           # smoothing for computing spectra
+bandwidth_spectra = 5           # smoothing for computing spectra (5 for having 2 tapers with a 1s window)
 
 start = 3           # seconds where to start to extract windows
 sampling_hz = 250;  start = start*sampling_hz
@@ -178,11 +178,11 @@ for fold_idx, (train_idx, block_idx) in enumerate(kf.split(data, y)):
     # y is ± region index (SIGN is negative for REST and positive for MI; absolute value is region index)
 
     psd_train, freqs = psd_array_multitaper(x_train, sfreq=sampling_hz, fmin=fmin_spectra, fmax=fmax_spectra,
-                            bandwidth=bandwidth_spectra, adaptive=True, verbose=False)
+                            bandwidth=bandwidth_spectra, verbose=False)
     psd_val, freqs   = psd_array_multitaper(x_val, sfreq=sampling_hz, fmin=fmin_spectra, fmax=fmax_spectra,
-                            bandwidth=bandwidth_spectra, adaptive=True, verbose=False)
+                            bandwidth=bandwidth_spectra, verbose=False)
     psd_test, freqs  = psd_array_multitaper(x_test, sfreq=sampling_hz, fmin=fmin_spectra, fmax=fmax_spectra,
-                            bandwidth=bandwidth_spectra, adaptive=True, verbose=False)
+                            bandwidth=bandwidth_spectra, verbose=False)
     if log_spectra:
         psd_train = np.log(psd_train)
         psd_val = np.log(psd_val)

@@ -403,7 +403,6 @@ def evaluate_encoder_decoder_spectra_by_region(model, x_test, psd_test, y_test, 
     """
 
     # Reconstruct
-    raise Exception("Sorry, non lo hai ancora implementato per bene! Ricontrolla tutto")
     spectra_recon = model.predict(x_test)
 
     results = []
@@ -535,11 +534,8 @@ def plot_random_PowerSpectra_reconstructed( model, x_test, psd_test, n_samples=1
     ----------
     model : keras / tf model Trained autoencoder.
     x_test : np.ndarray  Shape: (n_samples, n_times)
-    sf : float
-        Sampling frequency.
     """
-    raise Exception("Sorry, non lo hai ancora implementato tutto! (controlla quanti axis ho in psd_test)")
-
+    
     os.makedirs(save_dir, exist_ok=True)
     with open(os.path.join(save_dir, ".gitignore"), "w") as f:
         f.write("*")
@@ -557,8 +553,8 @@ def plot_random_PowerSpectra_reconstructed( model, x_test, psd_test, n_samples=1
 
         for _ in range(power_rec.shape[-1]):
             plt.figure(figsize=(10, 4))
-            plt.plot(psd_test[idx,:,_], linewidth=lw, label="original", color="C0")
-            plt.plot(power_rec[0, :, _], linewidth=lw, label="reconstructed", color="C1")
+            plt.plot(psd_test[idx,:], linewidth=lw, label="original", color="C0")
+            plt.plot(power_rec[0,:], linewidth=lw, label="reconstructed", color="C1")
 
             plt.title(f"Sample {idx}")
             plt.xlabel("Freq_bin")
