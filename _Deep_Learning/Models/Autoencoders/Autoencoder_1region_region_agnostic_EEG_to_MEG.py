@@ -18,7 +18,8 @@ import sys
 sys.path.append(os.path.abspath("Codes"))
 sys.path.append(os.path.abspath("_Deep_Learning"))
 
-from Deep_Library_BCI import MultiTaskModel
+cambia qui
+from Deep_Library_BCI import MultiTaskModel_Multimodal # Fallo in modo che prenda in input x_(...) e in output esca x_(...)_output
 from Utils import (freq_filter, windowize, save_training_results, plot_random_reconstructions,
                    evaluate_autoencoder_by_region, aggregate_columns_dfs)
 Normalization = "RegionWise" # "RegionWise" or "TraceWise" or "mediatrace,stdregionwise"
@@ -109,9 +110,9 @@ data = data[:,:,start:end]        #  data.shape = (192, 68, 748)
 
 data_2_Rest_output = read_subject(data_folder, DataType_output, "Baseline",subject)
 data_2_MI_output = read_subject(data_folder, DataType_output, "MI",subject)
-data = np.concatenate((data_2_Rest_output, data_2_MI_output), axis=0)
-data = freq_filter(data, sf=250, freqs=[4,45], type_filter="bandpass") # axis = -1 by default
-data = data[:,:,start:end]        #  data.shape = (192, 68, 748)
+data_output = np.concatenate((data_2_Rest_output, data_2_MI_output), axis=0)
+data_output = freq_filter(data_output, sf=250, freqs=[4,45], type_filter="bandpass") # axis = -1 by default
+data_output = data_output[:,:,start:end]        #  data.shape = (192, 68, 748)
 
 # y shape: (n_trials,) with negative values for Rest and positive for MI
 y = np.concatenate([-np.ones((data_2_Rest.shape[0])), np.ones((data_2_MI.shape[0]))])
@@ -131,16 +132,23 @@ for fold_idx, (train_idx, block_idx) in enumerate(kf.split(data, y)):
     split_num = fold_idx+1
 
     X_train = data[train_idx]
+    X_train_output = data_output[train_idx]
     y_train = y[train_idx]
     # X_Train shape: (n_trials_train, n_regions, n_timepoints)
     # y_Train shape: (n_trials_train,) ∈ {-1,+1}
 
     X_Block = data[block_idx]
+    X_Block_output = data_output[block_idx]
     y_Block = y[block_idx]
 
 
     X_val, X_test, y_val, y_test = train_test_split(
     X_Block, y_Block, test_size=0.5,         
+    shuffle=True, stratify=y_Block,     # preserves label balance
+    random_state=random_seed)
+
+    X_val_output, X_test_output, y_val_output, y_test_output = train_test_split(
+    X_Block_output, y_Block, test_size=0.5,         
     shuffle=True, stratify=y_Block,     # preserves label balance
     random_state=random_seed)
 
@@ -165,6 +173,10 @@ for fold_idx, (train_idx, block_idx) in enumerate(kf.split(data, y)):
     x_val = X_val.reshape(-1, X_val.shape[-1])
     x_test = X_test.reshape(-1, X_test.shape[-1])
 
+    x_train_output = X_train_output.reshape(-1, X_train_output.shape[-1]) # shape (n_trials*n_regions, n_timepoints)
+    x_val_output = X_val_output.reshape(-1, X_val_output.shape[-1])
+    x_test_output = X_test_output.reshape(-1, X_test_output.shape[-1])
+
     y_train = y_train.reshape(-1)
     y_val = y_val.reshape(-1)
     y_test = y_test.reshape(-1)
@@ -175,6 +187,10 @@ for fold_idx, (train_idx, block_idx) in enumerate(kf.split(data, y)):
     x_train, y_train = windowize(x_train, y_train, win_len=input_shape, shift=shift)
     x_val, y_val     = windowize(x_val, y_val, win_len=input_shape, shift=shift)
     x_test, y_test   = windowize(x_test, y_test, win_len=input_shape, shift=shift)
+
+    x_train_output, y_train_output = windowize(x_train_output, y_train, win_len=input_shape, shift=shift)
+    x_val_output, y_val_output     = windowize(x_val_output, y_val, win_len=input_shape, shift=shift)
+    x_test_output, y_test_output   = windowize(x_test_output, y_test, win_len=input_shape, shift=shift)
     # shape: x -> (n_windows, timepoints) ; y -> (n_windows,)
     # y is ± region index (SIGN is negative for REST and positive for MI; absolute value is region index)
 
@@ -192,6 +208,11 @@ for fold_idx, (train_idx, block_idx) in enumerate(kf.split(data, y)):
     x_train = scaler.fit_transform(x_train, y_train)
     x_val = scaler.transform(x_val, y_val)
     x_test = scaler.transform(x_test, y_test)
+
+    scaler = RegionWiseStandardizer()
+    x_train_output = scaler.fit_transform(x_train_output, y_train)
+    x_val_output = scaler.transform(x_val_output, y_val)
+    x_test_output = scaler.transform(x_test_output, y_test)
     # scaler = TraceWiseStandardizer()
     # x_train = scaler.transform(x_train)
     # x_val = scaler.transform(x_val)
@@ -200,13 +221,17 @@ for fold_idx, (train_idx, block_idx) in enumerate(kf.split(data, y)):
     x_val = x_val[..., np.newaxis]  
     x_test = x_test[..., np.newaxis] 
 
+    x_train_output = x_train_output[..., np.newaxis]  
+    x_val_output = x_val_output[..., np.newaxis]  
+    x_test_output = x_test_output[..., np.newaxis] 
+
     # reconstruction loss: MSE
     # reconstruction metric: MAE
 
     # classification loss: binary_crossentropy
     # classification metric: accuracy
 
-    model = MultiTaskModel(use_decoder=True, use_classifier=False)
+    model = MultiTaskModel_Multimodal(use_decoder=True, use_classifier=False)
     optimizer = optimizers.Adam(epsilon=1e-04)
     model.compile_cases(optimizer, loss_reconstruction="MSE", loss_classification=None)
 
