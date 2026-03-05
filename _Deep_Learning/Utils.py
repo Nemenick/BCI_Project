@@ -526,7 +526,7 @@ def plot_random_reconstructions( model, x_test, sf=250, freqs_filt=(4, 20), n_sa
             plt.savefig(fname, dpi=150)
             plt.close()
 
-def plot_random_PowerSpectra_reconstructed( model, x_test, psd_test, n_samples=10, save_dir="reconstructed_spectra", random_state=224):
+def plot_random_PowerSpectra_reconstructed( model, x_test, psd_test, freq_bins, n_samples=10, save_dir="reconstructed_spectra", random_state=224):
     """
     Plot original, reconstructed, and filtered traces for random samples.
 
@@ -549,22 +549,22 @@ def plot_random_PowerSpectra_reconstructed( model, x_test, psd_test, n_samples=1
     for k, idx in enumerate(indices):
         # --- reconstruction (EXACTLY like your snippet)
         x_in = x_test[idx:idx+1]
-        power_rec = model(x_in).numpy().reshape(x_in.shape)
+        power_rec = model(x_in).numpy()
 
-        for _ in range(power_rec.shape[-1]):
-            plt.figure(figsize=(10, 4))
-            plt.plot(psd_test[idx,:], linewidth=lw, label="original", color="C0")
-            plt.plot(power_rec[0,:], linewidth=lw, label="reconstructed", color="C1")
 
-            plt.title(f"Sample {idx}")
-            plt.xlabel("Freq_bin")
-            plt.ylabel("Amplitude")
-            plt.legend()
-            plt.tight_layout()
+        plt.figure(figsize=(10, 4))
+        plt.plot(freq_bins, psd_test[idx,:], linewidth=lw, label="original", color="C0")
+        plt.plot(freq_bins, power_rec[0,:], linewidth=lw, label="reconstructed", color="C1")
 
-            fname = os.path.join(save_dir, f"Spectra_reconstruced_{k:02d}_idx{idx}_freq_band_n_{_+1}.png")
-            plt.savefig(fname, dpi=150)
-            plt.close()
+        plt.title(f"Sample {idx}")
+        plt.xlabel("Freq_bin")
+        plt.ylabel("Amplitude")
+        plt.legend()
+        plt.tight_layout()
+
+        fname = os.path.join(save_dir, f"Spectra_reconstruced_{k:02d}_idx{idx}.png")
+        plt.savefig(fname, dpi=150)
+        plt.close()
 
 
 ################################ Deprecated code ################################
