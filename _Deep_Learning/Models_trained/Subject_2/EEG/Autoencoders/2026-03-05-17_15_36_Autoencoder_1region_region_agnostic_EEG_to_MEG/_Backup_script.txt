@@ -140,21 +140,16 @@ for fold_idx, (train_idx, block_idx) in enumerate(kf.split(data, y)):
     X_Block_output = data_output[block_idx]
     y_Block = y[block_idx]
 
-    indices = np.arange(len(X_Block))
 
-    idx_val, idx_test = train_test_split(
-        indices,
-        test_size=0.5,
-        shuffle=True,
-        stratify=y_Block,   # preserves label balance
-        random_state=random_seed)
+    X_val, X_test, y_val, y_test = train_test_split(
+    X_Block, y_Block, test_size=0.5,         
+    shuffle=True, stratify=y_Block,     # preserves label balance
+    random_state=random_seed)
 
-    X_val = X_Block[idx_val]
-    X_test = X_Block[idx_test]
-    X_val_output = X_Block_output[idx_val]
-    X_test_output = X_Block_output[idx_test]
-    y_val = y_Block[idx_val]
-    y_test = y_Block[idx_test]
+    X_val_output, X_test_output, y_val_output, y_test_output = train_test_split(
+    X_Block_output, y_Block, test_size=0.5,         
+    shuffle=True, stratify=y_Block,     # preserves label balance
+    random_state=random_seed)
 
 
     y_train = np.repeat(y_train[:,np.newaxis], repeats=n_regions,axis=1)
@@ -243,19 +238,17 @@ for fold_idx, (train_idx, block_idx) in enumerate(kf.split(data, y)):
     # labels_val = (y_val > 0).astype(int)
     # labels_test = (y_test > 0).astype(int)
 
-    storia = model.fit_cases(x_train, x_train_output, x_val, x_val_output, epochs=epochs, batch_size=BATCH_SIZE, 
+    storia = model.fit_cases(x_train, x_val, epochs=epochs, batch_size=BATCH_SIZE, 
                                 callbacks=EarlyStopping(monitor="val_loss", patience=pazienza,  restore_best_weights=True, start_from_epoch=20))
     # EarlyStopping comments:
     # val_loss in multi-output monitors the total loss (weighted);
     # patience 10 is good For Classification only
-    da cambiare qui
     plot_random_reconstructions(model, x_test[:,:,:], freqs_filt_axis=1, n_samples=10, save_dir=savedir+f"Split_{split_num}/reconstruction_plots_{split_num}")
-    da cambiare qui
+
     save_training_results(model, storia, savedir+f"Split_{split_num}/")
 
 
     # Compute performances varying the region
-    da cambiare qui
     tmp_df = evaluate_autoencoder_by_region(model, x_test, y_test, save_name=savedir+f"Split_{split_num}/region_performance_split_{split_num}.csv")
     tmp_df["Split_seed"] = random_seed
     tmp_df["DataType"] = DataType_input
