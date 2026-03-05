@@ -241,6 +241,20 @@ class MultiTaskModel_PowerSpectra(tf.keras.Model):
     def _build_decoder(self):
 
         latent_inputs = layers.Input(shape=(self.latent_dim,), name="decoder_input")
+        x = layers.Dense(16*128)(latent_inputs)
+        x = layers.Reshape((16, 128))(x)
+
+        for num,filters in enumerate(reversed(self.conv_filters[0:2])):
+            if num == 0:
+                x = layers.UpSampling1D()(x)
+            x = layers.Conv1D(filters, self.kernel_size, padding="same")(x)
+            x = self.activation_fn()(x)
+        x = layers.Flatten()(x)
+        x = layers.Dense(self.output_shape)(x)
+        outputs = layers.Activation("linear", name="reconstruction")(x)
+        
+        # CONVOLUTIONAL IF NEEDED
+        """latent_inputs = layers.Input(shape=(self.latent_dim,), name="decoder_input")
         x = layers.Dense(32*64)(latent_inputs)
         x = layers.Reshape((32,64))(x)
 
@@ -252,7 +266,7 @@ class MultiTaskModel_PowerSpectra(tf.keras.Model):
                 x = layers.Conv1D(1, self.kernel_size)(x)
 
         x = layers.Activation("linear")(x)
-        outputs = layers.Flatten()(x)
+        outputs = layers.Flatten()(x)"""
 
         return models.Model(latent_inputs, outputs, name="decoder")
 
