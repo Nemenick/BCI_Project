@@ -28,7 +28,7 @@ from Utils import TraceWiseStandardizer, RegionWiseStandardizer
 from BCI_Library import read_subject
 
 data_folder="Data/"
-subject = 18
+subject = 2
 DataType = "EEG"
 
 today = date.today()
@@ -38,7 +38,7 @@ path = f"_Deep_Learning/Models_trained/Subject_{subject}/{DataType}/Autoencoders
 Script_name = "_Deep_Learning/Models/Autoencoders/Encoder_1region_region_agnostic_output_power_spectra.py"
 Additional_Script_name = "_Deep_Learning/Deep_Library_BCI.py"
 
-tag = "Encoder_timeseries_Decoder_spectra_log_simpleNormalization"
+tag = "Encoder_timeseries_Decoder_spectra_log_simpleNormalization_larger_bandwidth_taper"
 now = datetime.now()
 formatted_time = now.strftime("%Y-%m-%d-%H_%M_%S")
 tag = formatted_time + "_" + tag # /home/silvia/Documents/GitHub/GAN_Prova/GAN/WGAN/tag_time 
@@ -47,7 +47,7 @@ savedir = path+tag+"/"
 log_spectra = True             # if compute log of spectra after
 fmin_spectra = 7                # min freq considered in spectra (output)
 fmax_spectra = 31               # max freq considered in spectra (output)
-bandwidth_spectra = 4           # smoothing for computing spectra
+bandwidth_spectra = 6           # smoothing for computing spectra (6 seems a good compromise)
 
 start = 3           # seconds where to start to extract windows
 sampling_hz = 250;  start = start*sampling_hz

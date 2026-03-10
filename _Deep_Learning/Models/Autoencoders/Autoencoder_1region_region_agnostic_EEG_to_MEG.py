@@ -27,14 +27,14 @@ from Utils import TraceWiseStandardizer, RegionWiseStandardizer
 from BCI_Library import read_subject
 
 data_folder="Data/"
-subject = 2
+subject = 1
 DataType_input = "EEG"
 DataType_output = "MEG" if DataType_input=="EEG" else "EEG"
 
 today = date.today()
 # print(f"\n\nCurrent working directory: {os.getcwd()}") # Current working directory: /home/silvia/Documents/GitHub/BCI_Project
 
-path = f"_Deep_Learning/Models_trained/Subject_{subject}/{DataType_input}/Autoencoders/"
+path = f"_Deep_Learning/Models_trained/Subject_{subject}/{"EEG+MEG"}/Autoencoders/"
 Script_name = "_Deep_Learning/Models/Autoencoders/Autoencoder_1region_region_agnostic_EEG_to_MEG.py"
 Additional_Script_name = "_Deep_Learning/Deep_Library_BCI.py"
 
@@ -248,15 +248,14 @@ for fold_idx, (train_idx, block_idx) in enumerate(kf.split(data, y)):
     # EarlyStopping comments:
     # val_loss in multi-output monitors the total loss (weighted);
     # patience 10 is good For Classification only
-    da cambiare qui
-    plot_random_reconstructions(model, x_test[:,:,:], freqs_filt_axis=1, n_samples=10, save_dir=savedir+f"Split_{split_num}/reconstruction_plots_{split_num}")
-    da cambiare qui
+    
+    plot_random_reconstructions(model, x_test[:,:,:], x_test_output, freqs_filt_axis=1, n_samples=10, save_dir=savedir+f"Split_{split_num}/reconstruction_plots_{split_num}")
+
     save_training_results(model, storia, savedir+f"Split_{split_num}/")
 
 
     # Compute performances varying the region
-    da cambiare qui
-    tmp_df = evaluate_autoencoder_by_region(model, x_test, y_test, save_name=savedir+f"Split_{split_num}/region_performance_split_{split_num}.csv")
+    tmp_df = evaluate_autoencoder_by_region(model, x_test, y_test, x_test_output=x_test_output, save_name=savedir+f"Split_{split_num}/region_performance_split_{split_num}.csv")
     tmp_df["Split_seed"] = random_seed
     tmp_df["DataType"] = DataType_input
     tmp_df["subject"] = subject

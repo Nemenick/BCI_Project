@@ -27,7 +27,7 @@ from Utils import TraceWiseStandardizer, RegionWiseStandardizer
 from BCI_Library import read_subject
 
 data_folder="Data/"
-subject = 4
+subject = 1
 DataType = "EEG"
 
 today = date.today()
@@ -37,7 +37,7 @@ path = f"_Deep_Learning/Models_trained/Subject_{subject}/{DataType}/Autoencoders
 Script_name = "_Deep_Learning/Models/Autoencoders/Autoencoder_1region_region_agnostic.py"
 Additional_Script_name = "_Deep_Learning/Deep_Library_BCI.py"
 
-tag = "Autoencoder_1region_region_agnostic_First_Try_No_BatchNorm"
+tag = "Autoencoder_1region_region_agnostic_First_Try_longer_windows"
 now = datetime.now()
 formatted_time = now.strftime("%Y-%m-%d-%H_%M_%S")
 tag = formatted_time + "_" + tag # /home/silvia/Documents/GitHub/GAN_Prova/GAN/WGAN/tag_time 
@@ -45,9 +45,9 @@ savedir = path+tag+"/"
 
 start = 3           # seconds where to start to extract windows
 sampling_hz = 250;  start = start*sampling_hz
-input_shape = 128   # length of each window
-shift = 62          # points to shift for next window in data
-num_windows = 11    # how many windows to extract from each trial
+input_shape = 256   # length of each window
+shift = 85          # points to shift for next window in data
+num_windows = 7     # how many windows to extract from each trial
 
 end = start + (num_windows-1)*shift + input_shape  # seconds where to end to extract windows (1500 == 6 seconds)
 
@@ -199,7 +199,7 @@ for fold_idx, (train_idx, block_idx) in enumerate(kf.split(data, y)):
     # classification loss: binary_crossentropy
     # classification metric: accuracy
 
-    model = MultiTaskModel(use_decoder=True, use_classifier=False)
+    model = MultiTaskModel(use_decoder=True, use_classifier=False, input_shape=(input_shape,1))
     optimizer = optimizers.Adam(epsilon=1e-04)
     model.compile_cases(optimizer, loss_reconstruction="MSE", loss_classification=None)
 

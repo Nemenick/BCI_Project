@@ -13,6 +13,7 @@ class MultiTaskModel(tf.keras.Model):
         use_decoder=True,
         use_classifier=True,
         latent_activation =  None, # use tanh if you want to compare with handextracted features ???
+        use_GRU = False,
         **kwargs
     ):
         super().__init__(**kwargs)
@@ -25,7 +26,10 @@ class MultiTaskModel(tf.keras.Model):
         self.latent_activation = latent_activation
 
         # Build components
-        self.encoder = self._build_encoder()
+        if use_GRU:
+            self.encoder = self._build_encoder_gru()
+        else:
+            self.encoder = self._build_encoder()
         self.decoder = self._build_decoder() if use_decoder else None
         self.classifier = self._build_classifier() if use_classifier else None
 
@@ -47,6 +51,28 @@ class MultiTaskModel(tf.keras.Model):
                 x = layers.Dropout(0.3)(x)
 
         x = layers.Flatten()(x) # 8 * 128 = 1024
+
+        # x = layers.Dense(self.latent_dim*2)(x) # TODO yes or no?? (Attenttion to batch norm here)
+        #x = self.activation_fn(x)
+        latent = layers.Dense(self.latent_dim, name="latent", activation=self.latent_activation)(x)
+
+        return models.Model(inputs, latent, name="encoder")
+
+    def _build_encoder_gru(self):
+        inputs = layers.Input(shape=self.input_shape_, name="encoder_input")
+
+        x = inputs
+
+        for n_layer in range(len(self.conv_filters[:-1])):
+            filters = self.conv_filters[n_layer]
+            x = layers.Conv1D(filters, self.kernel_size, padding="same")(x)
+            x = layers.BatchNormalization()(x)      # TODO vedi qui      
+            x = self.activation_fn()(x)
+            x = layers.MaxPooling1D()(x)                        # downsample by 2 n_filters times (4-> shape is 128/16 = 8)
+            if n_layer < len(self.conv_filters) -1 :
+                x = layers.Dropout(0.3)(x)
+
+        x = layers.Bidirectional( layers.GRU(8) ) (x)
 
         # x = layers.Dense(self.latent_dim*2)(x) # TODO yes or no?? (Attenttion to batch norm here)
         #x = self.activation_fn(x)
@@ -193,6 +219,7 @@ class MultiTaskModel_PowerSpectra(tf.keras.Model):
         use_decoder=True,
         use_classifier=True,
         latent_activation =  None, # use tanh if you want to compare with handextracted features ???
+        use_GRU = False,
         **kwargs
     ):
         super().__init__(**kwargs)
@@ -206,7 +233,10 @@ class MultiTaskModel_PowerSpectra(tf.keras.Model):
         self.latent_activation = latent_activation
 
         # Build components
-        self.encoder = self._build_encoder()
+        if use_GRU:
+            self.encoder = self._build_encoder_gru()
+        else:
+            self.encoder = self._build_encoder()
         self.decoder = self._build_decoder() if use_decoder else None
         self.classifier = self._build_classifier() if use_classifier else None
 
@@ -228,6 +258,29 @@ class MultiTaskModel_PowerSpectra(tf.keras.Model):
                 x = layers.Dropout(0.15)(x)
 
         x = layers.Flatten()(x) # 8 * 128 = 1024
+
+        # x = layers.Dense(self.latent_dim*2)(x) # TODO yes or no?? (Attenttion to batch norm here)
+        #x = self.activation_fn(x)
+        latent = layers.Dense(self.latent_dim, name="latent", activation=self.latent_activation)(x)
+
+        return models.Model(inputs, latent, name="encoder")
+    
+    
+    def _build_encoder_gru(self):
+        inputs = layers.Input(shape=self.input_shape_, name="encoder_input")
+
+        x = inputs
+
+        for n_layer in range(len(self.conv_filters[:-1])):
+            filters = self.conv_filters[n_layer]
+            x = layers.Conv1D(filters, self.kernel_size, padding="same")(x)
+            x = layers.BatchNormalization()(x)      # TODO vedi qui      
+            x = self.activation_fn()(x)
+            x = layers.MaxPooling1D()(x)                        # downsample by 2 n_filters times (4-> shape is 128/16 = 8)
+            if n_layer < len(self.conv_filters) -1 :
+                x = layers.Dropout(0.3)(x)
+
+        x = layers.Bidirectional( layers.GRU(8) ) (x)
 
         # x = layers.Dense(self.latent_dim*2)(x) # TODO yes or no?? (Attenttion to batch norm here)
         #x = self.activation_fn(x)
@@ -368,6 +421,10 @@ class MultiTaskModel_PowerSpectra(tf.keras.Model):
 
 
 class MultiTaskModel_Multimodal(MultiTaskModel):
+    """
+    Used to take as  input  EEG (or MEG) 
+    and reconstruct the     MEG (or EEG), the other modality
+    """
     # --------------------------------------------------
     # RE - DEFINE FIT CASES
     # --------------------------------------------------

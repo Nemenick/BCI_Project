@@ -350,10 +350,15 @@ def evaluate_classification_by_region(model, x_test, y_test, save_name=None, thr
 
     return df
 
-def evaluate_autoencoder_by_region(model, x_test, y_test, save_name=None):
+def evaluate_autoencoder_by_region(model, x_test, y_test, x_test_output=None, save_name=None):
     """
     Compute reconstruction performance grouped by abs(y_test).
     """
+    if x_test_output is not None and x_test_output.shape != x_test.shape:
+        print(("WARNING IN plot_random_reconstructions: x_test_out.shape != x_test.shape "))
+
+    if x_test_output is None:
+        x_test_output = x_test
 
     # Reconstruct
     x_recon = model.predict(x_test)
@@ -362,14 +367,14 @@ def evaluate_autoencoder_by_region(model, x_test, y_test, save_name=None):
 
     for region in np.unique(np.abs(y_test)):
         mask = np.abs(y_test) == region
-        x_true = x_test[mask]
+        x_true_output = x_test_output[mask]
         x_pred = x_recon[mask]
 
-        if len(x_true) == 0:
+        if len(x_true_output) == 0:
             continue
 
         # Flatten per-sample for error computation
-        x_true_f = x_true.reshape(len(x_true), -1)
+        x_true_f = x_true_output.reshape(len(x_true_output), -1)
         x_pred_f = x_pred.reshape(len(x_pred), -1)
 
         # Per-sample errors
@@ -379,7 +384,7 @@ def evaluate_autoencoder_by_region(model, x_test, y_test, save_name=None):
         row = {
             "ROIs": region-1,
             "NROIs": len([region]),
-            "n_windows": len(x_true),
+            "n_windows": len(x_true_output),
             "MSE_mean": mse_per_sample.mean(),
             "MSE_std": mse_per_sample.std(),
             "MAE_mean": mae_per_sample.mean(),
@@ -479,17 +484,22 @@ def aggregate_columns_dfs(dfs,  cols_to_aggregate=["Accuracy", "Precision", "Rec
     return pd.DataFrame(aggregated_rows)
 
 
-def plot_random_reconstructions( model, x_test, sf=250, freqs_filt=(4, 20), n_samples=10, save_dir="reconstruction_plots", random_state=None, freqs_filt_axis=-1):
+def plot_random_reconstructions( model, x_test, x_test_output=None, sf=250, freqs_filt=(4, 20), n_samples=10, save_dir="reconstruction_plots", random_state=None, freqs_filt_axis=-1):
     """
     Plot original, reconstructed, and filtered traces for random samples.
 
     Parameters
     ----------
     model : keras / tf model Trained autoencoder.
-    x_test : np.ndarray  Shape: (n_samples, n_times)
+    x_test,x_test_out : np.ndarray  Shape: (n_samples, n_times)
     sf : float
         Sampling frequency.
     """
+    if x_test_output is not None and x_test_output.shape != x_test.shape:
+        print(("WARNING IN plot_random_reconstructions: x_test_out.shape != x_test.shape "))
+
+    if x_test_output is None:
+        x_test_output = x_test
 
     os.makedirs(save_dir, exist_ok=True)
     with open(os.path.join(save_dir, ".gitignore"), "w") as f:
@@ -500,7 +510,7 @@ def plot_random_reconstructions( model, x_test, sf=250, freqs_filt=(4, 20), n_sa
 
     # Pre-compute filtered signals
     if freqs_filt is not None:
-        x_filt = freq_filter(x_test, sf=sf, freqs=list(freqs_filt), type_filter="bandpass", axis=freqs_filt_axis)
+        x_filt_out = freq_filter(x_test_output, sf=sf, freqs=list(freqs_filt), type_filter="bandpass", axis=freqs_filt_axis)
 
     lw = 2.3
 
@@ -511,10 +521,10 @@ def plot_random_reconstructions( model, x_test, sf=250, freqs_filt=(4, 20), n_sa
 
         for _ in range(x_rec.shape[-1]):
             plt.figure(figsize=(10, 4))
-            plt.plot(x_test[idx,:,_], linewidth=lw, label="original", color="C0")
+            plt.plot(x_test_output[idx,:,_], linewidth=lw, label="original", color="C0")
             plt.plot(x_rec[0, :, _], linewidth=lw, label="reconstructed", color="C1")
             if freqs_filt is not None and _ == 0:
-                plt.plot(x_filt[idx, :, _], linewidth=lw, label=f"filtered {freqs_filt[0]}-{freqs_filt[1]} Hz)", color="C2")
+                plt.plot(x_filt_out[idx, :, _], linewidth=lw, label=f"filtered {freqs_filt[0]}-{freqs_filt[1]} Hz)", color="C2")
 
             plt.title(f"Sample {idx}")
             plt.xlabel("Time")
