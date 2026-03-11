@@ -48,7 +48,7 @@ class MultiTaskModel(tf.keras.Model):
             x = self.activation_fn()(x)
             x = layers.MaxPooling1D()(x)                        # downsample by 2 n_filters times (4-> shape is 128/16 = 8)
             if n_layer < len(self.conv_filters) -1 :
-                x = layers.Dropout(0.3)(x)
+                x = layers.Dropout(0.15)(x)
 
         x = layers.Flatten()(x) # 8 * 128 = 1024
 
@@ -63,17 +63,18 @@ class MultiTaskModel(tf.keras.Model):
 
         x = inputs
 
-        for n_layer in range(len(self.conv_filters[:-1])):
+        for n_layer in range(len(self.conv_filters)):
             filters = self.conv_filters[n_layer]
             x = layers.Conv1D(filters, self.kernel_size, padding="same")(x)
             x = layers.BatchNormalization()(x)      # TODO vedi qui      
             x = self.activation_fn()(x)
             x = layers.MaxPooling1D()(x)                        # downsample by 2 n_filters times (4-> shape is 128/16 = 8)
             if n_layer < len(self.conv_filters) -1 :
-                x = layers.Dropout(0.3)(x)
+                x = layers.Dropout(0.15)(x)
+            if n_layer == 1:
+                x = layers.Bidirectional( layers.GRU(64, return_sequences=True), merge_mode="ave" ) (x)
 
-        x = layers.Bidirectional( layers.GRU(8) ) (x)
-
+        x = layers.Flatten()(x)
         # x = layers.Dense(self.latent_dim*2)(x) # TODO yes or no?? (Attenttion to batch norm here)
         #x = self.activation_fn(x)
         latent = layers.Dense(self.latent_dim, name="latent", activation=self.latent_activation)(x)
@@ -265,22 +266,22 @@ class MultiTaskModel_PowerSpectra(tf.keras.Model):
 
         return models.Model(inputs, latent, name="encoder")
     
-    
+
     def _build_encoder_gru(self):
         inputs = layers.Input(shape=self.input_shape_, name="encoder_input")
 
         x = inputs
 
-        for n_layer in range(len(self.conv_filters[:-1])):
+        for n_layer in range(len(self.conv_filters)):
             filters = self.conv_filters[n_layer]
             x = layers.Conv1D(filters, self.kernel_size, padding="same")(x)
             x = layers.BatchNormalization()(x)      # TODO vedi qui      
             x = self.activation_fn()(x)
-            x = layers.MaxPooling1D()(x)                        # downsample by 2 n_filters times (4-> shape is 128/16 = 8)
             if n_layer < len(self.conv_filters) -1 :
-                x = layers.Dropout(0.3)(x)
+                x = layers.MaxPooling1D()(x)                        # downsample by 2 n_filters times (4-> shape is 128/16 = 8)
+                x = layers.Dropout(0.15)(x)
 
-        x = layers.Bidirectional( layers.GRU(8) ) (x)
+        x = layers.Bidirectional( layers.GRU(16) ) (x)
 
         # x = layers.Dense(self.latent_dim*2)(x) # TODO yes or no?? (Attenttion to batch norm here)
         #x = self.activation_fn(x)
