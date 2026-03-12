@@ -27,8 +27,8 @@ from Utils import TraceWiseStandardizer, RegionWiseStandardizer
 from BCI_Library import read_subject
 
 data_folder="Data/"
-subject = 1
-DataType_input = "EEG"
+subject = 2
+DataType_input = "MEG"
 DataType_output = "MEG" if DataType_input=="EEG" else "EEG"
 
 today = date.today()
@@ -38,7 +38,7 @@ path = f"_Deep_Learning/Models_trained/Subject_{subject}/{"EEG+MEG"}/Autoencoder
 Script_name = "_Deep_Learning/Models/Autoencoders/Autoencoder_1region_region_agnostic_EEG_to_MEG.py"
 Additional_Script_name = "_Deep_Learning/Deep_Library_BCI.py"
 
-tag = "Autoencoder_1region_region_agnostic_EEG_to_MEG"
+tag = f"Autoencoder_1region_region_agnostic_{DataType_input}_to_{DataType_output}"
 now = datetime.now()
 formatted_time = now.strftime("%Y-%m-%d-%H_%M_%S")
 tag = formatted_time + "_" + tag # /home/silvia/Documents/GitHub/GAN_Prova/GAN/WGAN/tag_time 
@@ -185,6 +185,10 @@ for fold_idx, (train_idx, block_idx) in enumerate(kf.split(data, y)):
     y_val = y_val.reshape(-1)
     y_test = y_test.reshape(-1)
 
+    y_train_ori = y_train.copy()
+    y_val_ori = y_val.copy()
+    y_test_ori = y_test.copy()
+
     # x_train shape: (n_trials_train * n_regions, n_timepoints)
     # y_train shape: (n_trials_train * n_regions,) ∈ {-68,...,-1,+1,...,+68}
 
@@ -192,9 +196,9 @@ for fold_idx, (train_idx, block_idx) in enumerate(kf.split(data, y)):
     x_val, y_val     = windowize(x_val, y_val, win_len=input_shape, shift=shift)
     x_test, y_test   = windowize(x_test, y_test, win_len=input_shape, shift=shift)
 
-    x_train_output, y_train_output = windowize(x_train_output, y_train, win_len=input_shape, shift=shift)
-    x_val_output, y_val_output     = windowize(x_val_output, y_val, win_len=input_shape, shift=shift)
-    x_test_output, y_test_output   = windowize(x_test_output, y_test, win_len=input_shape, shift=shift)
+    x_train_output, y_train_output = windowize(x_train_output, y_train_ori, win_len=input_shape, shift=shift)
+    x_val_output, y_val_output     = windowize(x_val_output, y_val_ori, win_len=input_shape, shift=shift)
+    x_test_output, y_test_output   = windowize(x_test_output, y_test_ori, win_len=input_shape, shift=shift)
     # shape: x -> (n_windows, timepoints) ; y -> (n_windows,)
     # y is ± region index (SIGN is negative for REST and positive for MI; absolute value is region index)
 
