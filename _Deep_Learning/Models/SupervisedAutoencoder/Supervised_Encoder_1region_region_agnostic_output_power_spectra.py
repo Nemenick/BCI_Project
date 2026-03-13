@@ -1,6 +1,7 @@
-# nohup .venv/bin/python _Deep_Learning/Models/Autoencoders/Autoencoder_1region_region_agnostic.py &> _Deep_Learning/LOGS/Autoencoder_out_2026_02_16_10_30.txt
+# nohup .venv/bin/python _Deep_Learning/Models/SupervisedAutoencoder/Supervised_Encoder_1region_region_agnostic_output_power_spectra.py &> _Deep_Learning/LOGS/Supervised_Encoder_out_2026_02_16_10_30.txt
 
 import time
+from mne.time_frequency import psd_array_multitaper
 from datetime import date
 import os
 from datetime import datetime
@@ -18,37 +19,45 @@ import sys
 sys.path.append(os.path.abspath("Codes"))
 sys.path.append(os.path.abspath("_Deep_Learning"))
 
-from Deep_Library_BCI import MultiTaskModel
-from Utils import (freq_filter, windowize, save_training_results, plot_random_reconstructions,
-                   evaluate_autoencoder_by_region, aggregate_columns_dfs)
+from Deep_Library_BCI import MultiTaskModel_PowerSpectra
+from Utils import (freq_filter, windowize, save_training_results, plot_random_PowerSpectra_reconstructed,
+                   evaluate_multitask_by_region, aggregate_columns_dfs)
 Normalization = "RegionWise" # "RegionWise" or "TraceWise" or "mediatrace,stdregionwise"
 from Utils import TraceWiseStandardizer, RegionWiseStandardizer
 
 from BCI_Library import read_subject
 
 data_folder="Data/"
-subject = 18
+subject = 8
 DataType = "EEG"
-use_GRU = True
+use_GRU = False
+loss_weights = {"reconstruction": 1.0, "classification": 1/3}
+smoothing = 0.2
+classwei = loss_weights["classification"]
 
 today = date.today()
 # print(f"\n\nCurrent working directory: {os.getcwd()}") # Current working directory: /home/silvia/Documents/GitHub/BCI_Project
 
-path = f"_Deep_Learning/Models_trained/Subject_{subject}/{DataType}/Autoencoders/"
-Script_name = "_Deep_Learning/Models/Autoencoders/Autoencoder_1region_region_agnostic.py"
+path = f"_Deep_Learning/Models_trained/Subject_{subject}/{DataType}/SupervisedAutoencoder/"
+Script_name = "_Deep_Learning/Models/SupervisedAutoencoder/Supervised_Encoder_1region_region_agnostic_output_power_spectra.py"
 Additional_Script_name = "_Deep_Learning/Deep_Library_BCI.py"
 
-tag = "ZZZZZZZZZZZZZZZZZZZ_Prova_elimina_Autoencoder_1region_region_agnostic_First_Try" + ("_GRU" if use_GRU else "") + "_at_beginning"
+tag = f"Supervised_Encoder_timeseries_Decoder_spectra_log_simpleNormalization_bandwidth_taper_6_sm_{smoothing:.2f}_classwei_{classwei:.2f}" + ("_GRU_at_beginning" if use_GRU else "") 
 now = datetime.now()
 formatted_time = now.strftime("%Y-%m-%d-%H_%M_%S")
 tag = formatted_time + "_" + tag # /home/silvia/Documents/GitHub/GAN_Prova/GAN/WGAN/tag_time 
 savedir = path+tag+"/"
 
+log_spectra = True             # if compute log of spectra after
+fmin_spectra = 7                # min freq considered in spectra (output)
+fmax_spectra = 31               # max freq considered in spectra (output)
+bandwidth_spectra = 6           # smoothing for computing spectra (6 seems a good compromise)
+
 start = 3           # seconds where to start to extract windows
 sampling_hz = 250;  start = start*sampling_hz
-input_shape = 128   # length of each window
-shift = 62          # points to shift for next window in data
-num_windows = 11    # how many windows to extract from each trial
+input_shape = 256   # length of each window
+shift = 85          # points to shift for next window in data
+num_windows = 7     # how many windows to extract from each trial
 
 end = start + (num_windows-1)*shift + input_shape  # seconds where to end to extract windows (1500 == 6 seconds)
 
@@ -172,16 +181,26 @@ for fold_idx, (train_idx, block_idx) in enumerate(kf.split(data, y)):
     # shape: x -> (n_windows, timepoints) ; y -> (n_windows,)
     # y is ± region index (SIGN is negative for REST and positive for MI; absolute value is region index)
 
-
+    psd_train, freqs = psd_array_multitaper(x_train, sfreq=sampling_hz, fmin=fmin_spectra, fmax=fmax_spectra,
+                            bandwidth=bandwidth_spectra, adaptive=True, verbose=False)
+    psd_val, freqs   = psd_array_multitaper(x_val, sfreq=sampling_hz, fmin=fmin_spectra, fmax=fmax_spectra,
+                            bandwidth=bandwidth_spectra, adaptive=True, verbose=False)
+    psd_test, freqs  = psd_array_multitaper(x_test, sfreq=sampling_hz, fmin=fmin_spectra, fmax=fmax_spectra,
+                            bandwidth=bandwidth_spectra, adaptive=True, verbose=False)
+    if log_spectra:
+        psd_train = np.log10(psd_train)
+        psd_val = np.log10(psd_val)
+        psd_test = np.log10(psd_test)
  
     print(f"\n\nx_train shape: {x_train.shape}, x_val shape: {x_val.shape}, x_test shape: {x_test.shape}\n\n")
+    print(f"\n\nx_train shape: {psd_train.shape}, x_val shape: {psd_val.shape}, x_test shape: {psd_test.shape}\n\n")
 
     ###################################################################################################################################
     # NORMALIZATION (per region?)
     # Optimizing EEG ICA Decomposition with Machine Learning: A CNN-Based Alternative to EEGLAB for Fast and Scalable Brain Activity Analysis
     # Assessing the Role of EEG Biosignal Preprocessing to Enhance Multiscale Fuzzy Entropy in Alzheimer’s Disease Detection
     # (when applying on multiple subjects) Cross-Subject EEG-Based Emotion Recognition Through Neural Networks With Stratified Normalization 
-
+    # NORMALIZZA ANCHE PSD
     scaler = RegionWiseStandardizer()
     x_train = scaler.fit_transform(x_train, y_train)
     x_val = scaler.transform(x_val, y_val)
@@ -194,42 +213,49 @@ for fold_idx, (train_idx, block_idx) in enumerate(kf.split(data, y)):
     x_val = x_val[..., np.newaxis]  
     x_test = x_test[..., np.newaxis] 
 
+    scaler = RegionWiseStandardizer()
+    psd_train = scaler.fit_transform(psd_train, y_train)
+    psd_val = scaler.transform(psd_val, y_val)
+    psd_test = scaler.transform(psd_test, y_test)
+
     # reconstruction loss: MSE
     # reconstruction metric: MAE
 
     # classification loss: binary_crossentropy
     # classification metric: accuracy
 
-    model = MultiTaskModel(use_decoder=True, use_classifier=False, use_GRU=use_GRU)
+    model = MultiTaskModel_PowerSpectra(input_shape = x_train.shape[1:], output_shape = psd_train.shape[1],
+                                         use_decoder=True, use_classifier=True, use_GRU=use_GRU)
     optimizer = optimizers.Adam(epsilon=1e-04)
-    model.compile_cases(optimizer, loss_reconstruction="MSE", loss_classification=None)
+    loss_classification = tf.keras.losses.BinaryCrossentropy(label_smoothing=smoothing)
+    model.compile_cases(optimizer, loss_reconstruction="MSE", loss_classification=loss_classification)
 
     # labels_train = (y_train > 0).astype(int)
     # labels_val = (y_val > 0).astype(int)
     # labels_test = (y_test > 0).astype(int)
 
-    storia = model.fit_cases(x_train, x_val, epochs=epochs, batch_size=BATCH_SIZE, 
+    storia = model.fit_cases(x_train, psd_train, x_val, psd_val, epochs=epochs, batch_size=BATCH_SIZE, 
                                 callbacks=EarlyStopping(monitor="val_loss", patience=pazienza,  restore_best_weights=True, start_from_epoch=20))
     # EarlyStopping comments:
     # val_loss in multi-output monitors the total loss (weighted);
     # patience 10 is good For Classification only
-    plot_random_reconstructions(model, x_test[:,:,:], freqs_filt_axis=1, n_samples=10, save_dir=savedir+f"Split_{split_num}/reconstruction_plots_{split_num}")
+    plot_random_PowerSpectra_reconstructed(model, x_test[:,:,:], psd_test, freq_bins=freqs, n_samples=10, save_dir=savedir+f"Split_{split_num}/reconstruction_plots_{split_num}")
 
     save_training_results(model, storia, savedir+f"Split_{split_num}/")
 
 
     # Compute performances varying the region
-    tmp_df = evaluate_autoencoder_by_region(model, x_test, y_test, save_name=savedir+f"Split_{split_num}/region_performance_split_{split_num}.csv")
+    tmp_df = evaluate_multitask_by_region(model, x_test, y_test=y_test, x_test_output=psd_test, save_name=savedir+f"Split_{split_num}/region_performance_split_{split_num}.csv")
     tmp_df["Split_seed"] = random_seed
     tmp_df["DataType"] = DataType
     tmp_df["subject"] = subject
-    tmp_df["Features"] = "Autoencoder_extracted"
+    tmp_df["Features"] = "Encoder_PowerSpectra_extracted"
     tmp_df["Comments"] = "-"
     tmp_df["Date"] = today
     tmp_df["WindowsNormalization"] = Normalization
     evaluated_by_regions_dataframes.append(tmp_df)
 
-aggregated_df = aggregate_columns_dfs(evaluated_by_regions_dataframes, cols_to_aggregate=["n_windows", "MSE_mean", "MSE_std", "MAE_mean", "MAE_std"])
+aggregated_df = aggregate_columns_dfs(evaluated_by_regions_dataframes, cols_to_aggregate=["n_windows", "MSE_mean", "MSE_std", "MAE_mean", "MAE_std", "Accuracy", "Precision", "Recall", "F1"])
 aggregated_df.to_pickle(f"{savedir}aggregated_region_performance.pkl")
 
 print("\n\n\nTEMPOO per 5 folds", time.perf_counter()-start, "\n\n\n")

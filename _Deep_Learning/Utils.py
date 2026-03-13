@@ -616,7 +616,7 @@ def plot_random_PowerSpectra_reconstructed( model, x_test, psd_test, freq_bins, 
         plt.close()
 
 
-################################ Deprecated code ################################
+################################ Deprecated code (but still in use) ################################
 
 def create_labels(n_trials, n_regions=68):
 
@@ -719,7 +719,6 @@ def evaluate_autoencoder_by_region_old(model, x_test, y_test, x_test_output=None
         print(f"Region-wise reconstruction performance saved to {save_name}")
 
     return df 
-
 
 def split_train_val_test(x, train_percentage=0.7, validation_percentage=0.15, test_percentage=0.15, seed=42):
     """

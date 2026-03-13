@@ -1,4 +1,4 @@
-# nohup .venv/bin/python _Deep_Learning/Models/Autoencoders/Autoencoder_1region_region_agnostic.py &> _Deep_Learning/LOGS/Autoencoder_out_2026_02_16_10_30.txt
+# nohup .venv/bin/python _Deep_Learning/Models/SupervisedAutoencoder/SupervisedAutoencoder_1region_region_agnostic.py &> _Deep_Learning/LOGS/SupervisedAutoencoder_out_2026_03_16_10_30.txt
 
 import time
 from datetime import date
@@ -27,18 +27,20 @@ from Utils import TraceWiseStandardizer, RegionWiseStandardizer
 from BCI_Library import read_subject
 
 data_folder="Data/"
-subject = 18
+subject = 2
 DataType = "EEG"
-use_GRU = True
-
+use_GRU = False
+loss_weights = {"reconstruction": 1.0, "classification": 1/3}
+smoothing = 0.2
+classwei = loss_weights["classification"]
 today = date.today()
 # print(f"\n\nCurrent working directory: {os.getcwd()}") # Current working directory: /home/silvia/Documents/GitHub/BCI_Project
 
-path = f"_Deep_Learning/Models_trained/Subject_{subject}/{DataType}/Autoencoders/"
-Script_name = "_Deep_Learning/Models/Autoencoders/Autoencoder_1region_region_agnostic.py"
+path = f"_Deep_Learning/Models_trained/Subject_{subject}/{DataType}/SupervisedAutoencoder/"
+Script_name = "_Deep_Learning/Models/SupervisedAutoencoder/SupervisedAutoencoder_1region_region_agnostic.py"
 Additional_Script_name = "_Deep_Learning/Deep_Library_BCI.py"
 
-tag = "ZZZZZZZZZZZZZZZZZZZ_Prova_elimina_Autoencoder_1region_region_agnostic_First_Try" + ("_GRU" if use_GRU else "") + "_at_beginning"
+tag = f"SupervisedAutoencoder_1region_region_agnostic_First_Try_sm_{smoothing:.2f}_classwei_{classwei:.2f}" + ("_GRU" + "_at_beginning" if use_GRU else "")
 now = datetime.now()
 formatted_time = now.strftime("%Y-%m-%d-%H_%M_%S")
 tag = formatted_time + "_" + tag # /home/silvia/Documents/GitHub/GAN_Prova/GAN/WGAN/tag_time 
@@ -200,16 +202,17 @@ for fold_idx, (train_idx, block_idx) in enumerate(kf.split(data, y)):
     # classification loss: binary_crossentropy
     # classification metric: accuracy
 
-    model = MultiTaskModel(use_decoder=True, use_classifier=False, use_GRU=use_GRU)
+    model = MultiTaskModel(use_decoder=True, use_classifier=True, use_GRU=use_GRU)
     optimizer = optimizers.Adam(epsilon=1e-04)
-    model.compile_cases(optimizer, loss_reconstruction="MSE", loss_classification=None)
+    loss_classification = tf.keras.losses.BinaryCrossentropy(label_smoothing=smoothing)
+    model.compile_cases(optimizer, loss_reconstruction="MSE", loss_classification=loss_classification, loss_weights=loss_weights )
 
-    # labels_train = (y_train > 0).astype(int)
-    # labels_val = (y_val > 0).astype(int)
-    # labels_test = (y_test > 0).astype(int)
+    labels_train = (y_train > 0).astype(int)
+    labels_val = (y_val > 0).astype(int)
+    labels_test = (y_test > 0).astype(int)
 
-    storia = model.fit_cases(x_train, x_val, epochs=epochs, batch_size=BATCH_SIZE, 
-                                callbacks=EarlyStopping(monitor="val_loss", patience=pazienza,  restore_best_weights=True, start_from_epoch=20))
+    storia = model.fit_cases(x_train, x_val, epochs=epochs, y_train=labels_train, y_val=labels_val, batch_size=BATCH_SIZE, 
+                                callbacks=EarlyStopping(monitor="val_loss", patience=pazienza,  restore_best_weights=True, start_from_epoch=15))
     # EarlyStopping comments:
     # val_loss in multi-output monitors the total loss (weighted);
     # patience 10 is good For Classification only
@@ -229,7 +232,7 @@ for fold_idx, (train_idx, block_idx) in enumerate(kf.split(data, y)):
     tmp_df["WindowsNormalization"] = Normalization
     evaluated_by_regions_dataframes.append(tmp_df)
 
-aggregated_df = aggregate_columns_dfs(evaluated_by_regions_dataframes, cols_to_aggregate=["n_windows", "MSE_mean", "MSE_std", "MAE_mean", "MAE_std"])
+aggregated_df = aggregate_columns_dfs(evaluated_by_regions_dataframes, cols_to_aggregate=["n_windows", "MSE_mean", "MSE_std", "MAE_mean", "MAE_std", "Accuracy", "Precision", "Recall", "F1",])
 aggregated_df.to_pickle(f"{savedir}aggregated_region_performance.pkl")
 
 print("\n\n\nTEMPOO per 5 folds", time.perf_counter()-start, "\n\n\n")

@@ -1,4 +1,4 @@
-# nohup .venv/bin/python _Deep_Learning/Models/SupervisedAutoencoders/SupervisedAutoencoder_1region_region_agnostic.py &> _Deep_Learning/LOGS/SupervisedAutoencoder_out_2026_03_16_10_30.txt
+# nohup .venv/bin/python _Deep_Learning/Models/SupervisedAutoencoder/SupervisedAutoencoder_1region_region_agnostic.py &> _Deep_Learning/LOGS/SupervisedAutoencoder_out_2026_03_16_10_30.txt
 
 import time
 from datetime import date
@@ -20,26 +20,27 @@ sys.path.append(os.path.abspath("_Deep_Learning"))
 
 from Deep_Library_BCI import MultiTaskModel
 from Utils import (freq_filter, windowize, save_training_results, plot_random_reconstructions,
-                   evaluate_autoencoder_by_region, aggregate_columns_dfs)
+                   evaluate_multitask_by_region, aggregate_columns_dfs)
 Normalization = "RegionWise" # "RegionWise" or "TraceWise" or "mediatrace,stdregionwise"
 from Utils import TraceWiseStandardizer, RegionWiseStandardizer
 
 from BCI_Library import read_subject
 
 data_folder="Data/"
-subject = 1
+subject = 2
 DataType = "EEG"
 use_GRU = False
-loss_weights = {"reconstruction": 1.0, "classification": 1.0}
-
+loss_weights = {"reconstruction": 1.0, "classification": 1/3}
+smoothing = 0.2
+classwei = loss_weights["classification"]
 today = date.today()
 # print(f"\n\nCurrent working directory: {os.getcwd()}") # Current working directory: /home/silvia/Documents/GitHub/BCI_Project
 
-path = f"_Deep_Learning/Models_trained/Subject_{subject}/{DataType}/SupervisedAutoencoders/"
-Script_name = "_Deep_Learning/Models/SupervisedAutoencoders/SupervisedAutoencoder_1region_region_agnostic.py"
+path = f"_Deep_Learning/Models_trained/Subject_{subject}/{DataType}/SupervisedAutoencoder/"
+Script_name = "_Deep_Learning/Models/SupervisedAutoencoder/SupervisedAutoencoder_1region_region_agnostic.py"
 Additional_Script_name = "_Deep_Learning/Deep_Library_BCI.py"
 
-tag = "Autoencoder_1region_region_agnostic_First_Try" + ("_GRU" if use_GRU else "") + "_at_beginning"
+tag = f"SupervisedAutoencoder_1region_region_agnostic_First_Try_sm_{smoothing:.2f}_classwei_{classwei:.2f}" + ("_GRU" + "_at_beginning" if use_GRU else "")
 now = datetime.now()
 formatted_time = now.strftime("%Y-%m-%d-%H_%M_%S")
 tag = formatted_time + "_" + tag # /home/silvia/Documents/GitHub/GAN_Prova/GAN/WGAN/tag_time 
@@ -203,7 +204,8 @@ for fold_idx, (train_idx, block_idx) in enumerate(kf.split(data, y)):
 
     model = MultiTaskModel(use_decoder=True, use_classifier=True, use_GRU=use_GRU)
     optimizer = optimizers.Adam(epsilon=1e-04)
-    model.compile_cases(optimizer, loss_reconstruction="MSE", loss_classification="binary_crossentropy", loss_weights=loss_weights )
+    loss_classification = tf.keras.losses.BinaryCrossentropy(label_smoothing=smoothing)
+    model.compile_cases(optimizer, loss_reconstruction="MSE", loss_classification=loss_classification, loss_weights=loss_weights )
 
     labels_train = (y_train > 0).astype(int)
     labels_val = (y_val > 0).astype(int)
@@ -220,7 +222,7 @@ for fold_idx, (train_idx, block_idx) in enumerate(kf.split(data, y)):
 
 
     # Compute performances varying the region
-    tmp_df = evaluate_autoencoder_by_region(model, x_test, y_test, save_name=savedir+f"Split_{split_num}/region_performance_split_{split_num}.csv")
+    tmp_df = evaluate_multitask_by_region(model, x_test, y_test, save_name=savedir+f"Split_{split_num}/region_performance_split_{split_num}.csv")
     tmp_df["Split_seed"] = random_seed
     tmp_df["DataType"] = DataType
     tmp_df["subject"] = subject
