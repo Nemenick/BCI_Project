@@ -310,97 +310,131 @@ def save_training_results(model, history, save_dir):
 
     print(f"Plots saved to {save_dir}")
 
+def evaluate_multitask_by_region(model,x_test,y_test,x_test_output=None,threshold=0.5,save_name=None):
+    """
+    Computes reconstruction and/or classification metrics grouped by region.
+    Works with:
+        - autoencoder
+        - classifier
+        - supervised autoencoder
+    """
 
-def evaluate_classification_by_region(model, x_test, y_test, save_name=None, threshold=0.5):
-    """
-    Compute classification performance grouped by abs(y_test).
-    Saves a CSV in save_dir.
-    """
-    # Model predictions
-    y_prob = model.predict(x_test).squeeze()
-    y_pred = (y_prob >= threshold).astype(int)
+    outputs = model.predict(x_test)
+
+    # -----------------------------------
+    # Detect model outputs
+    # -----------------------------------
+
+    x_test_output_shape = x_test.shape if x_test_output is None else x_test_output.shape
+
+    
+    if isinstance(outputs, dict):
+        x_recon = outputs.get("reconstruction", None)
+        y_prob = outputs.get("classification", None)
+    else:
+        # single-head models
+        print(outputs.shape, x_test_output_shape)
+        if outputs.shape == x_test_output_shape:  # reconstruction
+            x_recon = outputs
+            y_prob = None
+        else:                 # classification
+            x_recon = None
+            y_prob = outputs.squeeze()
+
+    if y_prob is not None:
+        y_pred = (y_prob >= threshold).astype(int)
+
+    if x_recon is not None:
+        if x_test_output is None:
+            x_test_output = x_test
+
+        if x_test_output.shape != x_test.shape:
+            print("WARNING: x_test_output.shape != x_test.shape")
 
     results = []
 
     for region in np.unique(np.abs(y_test)):
         mask = np.abs(y_test) == region
-        y_true = (y_test[mask] > 0).astype(int)
-        y_region_pred = y_pred[mask]
+        n_windows = mask.sum()
 
-        if len(y_true) == 0:
+        if n_windows == 0:
             continue
+
         row = {
-            "ROIs": region-1,
-            "NROIs": len([region]),
-            "n_windows": len(y_true),
-            "Accuracy": accuracy_score(y_true, y_region_pred),
-            "Precision": precision_score(y_true, y_region_pred, zero_division=0),
-            "Recall": recall_score(y_true, y_region_pred, zero_division=0),
-            "F1": f1_score(y_true, y_region_pred, zero_division=0),
+            "ROIs": region - 1,
+            "NROIs": 1,
+            "n_windows": n_windows
         }
 
+        # -----------------------------------
+        # Classification metrics
+        # -----------------------------------
+        if y_prob is not None:
+
+            y_true = (y_test[mask] > 0).astype(int)
+            y_region_pred = y_pred[mask]
+
+            row.update({
+                "Accuracy": accuracy_score(y_true, y_region_pred),
+                "Precision": precision_score(y_true, y_region_pred, zero_division=0),
+                "Recall": recall_score(y_true, y_region_pred, zero_division=0),
+                "F1": f1_score(y_true, y_region_pred, zero_division=0)
+            })
+
+        # -----------------------------------
+        # Reconstruction metrics
+        # -----------------------------------
+        if x_recon is not None:
+
+            x_true = x_test_output[mask]
+            x_pred = x_recon[mask]
+
+            x_true_f = x_true.reshape(len(x_true), -1)
+            x_pred_f = x_pred.reshape(len(x_pred), -1)
+
+            mse = np.mean((x_true_f - x_pred_f) ** 2, axis=1)
+            mae = np.mean(np.abs(x_true_f - x_pred_f), axis=1)
+
+            row.update({
+                "MSE_mean": mse.mean(),
+                "MSE_std": mse.std(),
+                "MAE_mean": mae.mean(),
+                "MAE_std": mae.std()
+            })
+
         results.append(row)
+
     df = pd.DataFrame(results).sort_values("ROIs").reset_index(drop=True)
 
-    # Save
     if save_name is not None:
         df.to_csv(save_name, index=False)
-
-    print(f"Region-wise performance saved to {save_name}")
+        print(f"Region-wise performance saved to {save_name}")
 
     return df
 
-def evaluate_autoencoder_by_region(model, x_test, y_test, x_test_output=None, save_name=None):
+def evaluate_autoencoder_by_region(model,x_test,y_test,x_test_output=None,save_name=None):
     """
-    Compute reconstruction performance grouped by abs(y_test).
+    Preserving the original autoencoder evaluation API.
+    Returns only reconstruction metrics.
     """
-    if x_test_output is not None and x_test_output.shape != x_test.shape:
-        print(("WARNING IN plot_random_reconstructions: x_test_out.shape != x_test.shape "))
 
-    if x_test_output is None:
-        x_test_output = x_test
+    df = evaluate_multitask_by_region(model=model, x_test=x_test, y_test=y_test, x_test_output=x_test_output, save_name=save_name)
 
-    # Reconstruct
-    x_recon = model.predict(x_test)
+    recon_cols = ["ROIs","NROIs","n_windows","MSE_mean","MSE_std","MAE_mean","MAE_std"]
 
-    results = []
+    return df[recon_cols]
 
-    for region in np.unique(np.abs(y_test)):
-        mask = np.abs(y_test) == region
-        x_true_output = x_test_output[mask]
-        x_pred = x_recon[mask]
+def evaluate_classification_by_region( model, x_test, y_test, threshold=0.5, save_name=None):
+    """
+    Preserving the original classification evaluation API.
+    Returns only classification metrics.
+    """
 
-        if len(x_true_output) == 0:
-            continue
+    df = evaluate_multitask_by_region(model=model, x_test=x_test, y_test=y_test, threshold=threshold, save_name=save_name)
 
-        # Flatten per-sample for error computation
-        x_true_f = x_true_output.reshape(len(x_true_output), -1)
-        x_pred_f = x_pred.reshape(len(x_pred), -1)
+    class_cols = ["ROIs","NROIs","n_windows","Accuracy","Precision","Recall","F1"]
 
-        # Per-sample errors
-        mse_per_sample = np.mean((x_true_f - x_pred_f) ** 2, axis=1)
-        mae_per_sample = np.mean(np.abs(x_true_f - x_pred_f), axis=1)
-
-        row = {
-            "ROIs": region-1,
-            "NROIs": len([region]),
-            "n_windows": len(x_true_output),
-            "MSE_mean": mse_per_sample.mean(),
-            "MSE_std": mse_per_sample.std(),
-            "MAE_mean": mae_per_sample.mean(),
-            "MAE_std": mae_per_sample.std(),
-        }
-
-        results.append(row)
-
-    df = pd.DataFrame(results).sort_values("ROIs").reset_index(drop=True)
-
-    # Save
-    if save_name is not None:
-        df.to_csv(save_name, index=False)
-        print(f"Region-wise reconstruction performance saved to {save_name}")
-
-    return df 
+    return df[class_cols]
 
 def evaluate_encoder_decoder_spectra_by_region(model, x_test, psd_test, y_test, save_name=None):
     """
@@ -483,7 +517,6 @@ def aggregate_columns_dfs(dfs,  cols_to_aggregate=["Accuracy", "Precision", "Rec
 
     return pd.DataFrame(aggregated_rows)
 
-
 def plot_random_reconstructions( model, x_test, x_test_output=None, sf=250, freqs_filt=(4, 20), n_samples=10, save_dir="reconstruction_plots", random_state=None, freqs_filt_axis=-1):
     """
     Plot original, reconstructed, and filtered traces for random samples.
@@ -517,7 +550,10 @@ def plot_random_reconstructions( model, x_test, x_test_output=None, sf=250, freq
     for k, idx in enumerate(indices):
         # --- reconstruction (EXACTLY like your snippet)
         x_in = x_test[idx:idx+1]
-        x_rec = model(x_in).numpy().reshape(x_in.shape)
+        x_rec = model(x_in)
+        if isinstance(x_rec, dict):
+            x_rec = x_rec["reconstruction"]
+        x_rec = x_rec.numpy().reshape(x_in.shape)
 
         for _ in range(x_rec.shape[-1]):
             plt.figure(figsize=(10, 4))
@@ -559,8 +595,11 @@ def plot_random_PowerSpectra_reconstructed( model, x_test, psd_test, freq_bins, 
     for k, idx in enumerate(indices):
         # --- reconstruction (EXACTLY like your snippet)
         x_in = x_test[idx:idx+1]
-        power_rec = model(x_in).numpy()
+        power_rec = model(x_in)
 
+        if isinstance(power_rec, dict):
+            power_rec = power_rec["reconstruction"]
+        power_rec = power_rec.numpy()
 
         plt.figure(figsize=(10, 4))
         plt.plot(freq_bins, psd_test[idx,:], linewidth=lw, label="original", color="C0")
@@ -590,6 +629,96 @@ def create_labels(n_trials, n_regions=68):
         y[:, col] *= (col+1)
     return y
 
+def evaluate_classification_by_region_old(model, x_test, y_test, save_name=None, threshold=0.5):
+    """
+    Compute classification performance grouped by abs(y_test).
+    Saves a CSV in save_dir.
+    """
+    # Model predictions
+    y_prob = model.predict(x_test).squeeze()
+    y_pred = (y_prob >= threshold).astype(int)
+
+    results = []
+
+    for region in np.unique(np.abs(y_test)):
+        mask = np.abs(y_test) == region
+        y_true = (y_test[mask] > 0).astype(int)
+        y_region_pred = y_pred[mask]
+
+        if len(y_true) == 0:
+            continue
+        row = {
+            "ROIs": region-1,
+            "NROIs": len([region]),
+            "n_windows": len(y_true),
+            "Accuracy": accuracy_score(y_true, y_region_pred),
+            "Precision": precision_score(y_true, y_region_pred, zero_division=0),
+            "Recall": recall_score(y_true, y_region_pred, zero_division=0),
+            "F1": f1_score(y_true, y_region_pred, zero_division=0),
+        }
+
+        results.append(row)
+    df = pd.DataFrame(results).sort_values("ROIs").reset_index(drop=True)
+
+    # Save
+    if save_name is not None:
+        df.to_csv(save_name, index=False)
+
+    print(f"Region-wise performance saved to {save_name}")
+
+    return df
+
+def evaluate_autoencoder_by_region_old(model, x_test, y_test, x_test_output=None, save_name=None):
+    """
+    Compute reconstruction performance grouped by abs(y_test).
+    """
+    if x_test_output is not None and x_test_output.shape != x_test.shape:
+        print(("WARNING IN plot_random_reconstructions: x_test_out.shape != x_test.shape "))
+
+    if x_test_output is None:
+        x_test_output = x_test
+
+    # Reconstruct
+    x_recon = model.predict(x_test)
+
+    results = []
+
+    for region in np.unique(np.abs(y_test)):
+        mask = np.abs(y_test) == region
+        x_true_output = x_test_output[mask]
+        x_pred = x_recon[mask]
+
+        if len(x_true_output) == 0:
+            continue
+
+        # Flatten per-sample for error computation
+        x_true_f = x_true_output.reshape(len(x_true_output), -1)
+        x_pred_f = x_pred.reshape(len(x_pred), -1)
+
+        # Per-sample errors
+        mse_per_sample = np.mean((x_true_f - x_pred_f) ** 2, axis=1)
+        mae_per_sample = np.mean(np.abs(x_true_f - x_pred_f), axis=1)
+
+        row = {
+            "ROIs": region-1,
+            "NROIs": len([region]),
+            "n_windows": len(x_true_output),
+            "MSE_mean": mse_per_sample.mean(),
+            "MSE_std": mse_per_sample.std(),
+            "MAE_mean": mae_per_sample.mean(),
+            "MAE_std": mae_per_sample.std(),
+        }
+
+        results.append(row)
+
+    df = pd.DataFrame(results).sort_values("ROIs").reset_index(drop=True)
+
+    # Save
+    if save_name is not None:
+        df.to_csv(save_name, index=False)
+        print(f"Region-wise reconstruction performance saved to {save_name}")
+
+    return df 
 
 
 def split_train_val_test(x, train_percentage=0.7, validation_percentage=0.15, test_percentage=0.15, seed=42):

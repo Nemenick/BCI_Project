@@ -28,7 +28,7 @@ from Utils import TraceWiseStandardizer, RegionWiseStandardizer
 from BCI_Library import read_subject
 
 data_folder="Data/"
-subject = 8
+subject = 1
 DataType = "EEG"
 use_GRU = True
 
