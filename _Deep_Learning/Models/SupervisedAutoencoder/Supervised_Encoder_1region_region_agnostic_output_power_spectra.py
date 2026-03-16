@@ -28,10 +28,10 @@ from Utils import TraceWiseStandardizer, RegionWiseStandardizer
 from BCI_Library import read_subject
 
 data_folder="Data/"
-subject = 4
+subject = 8
 DataType = "EEG"
 use_GRU = False
-loss_weights = {"reconstruction": 1.0, "classification": 1/4}
+loss_weights = {"reconstruction": 1.0, "classification": 1}
 smoothing = 0.2
 classwei = loss_weights["classification"]
 
