@@ -375,7 +375,7 @@ def train_models(data_features, labels, n_kfold=5, scaler=StandardScaler,
     return fold_accuracies, fold_confusions, trained_models,val_indexes
 
 def train_single_model(data_features, labels, train_idx, val_idx, method=LinearDiscriminantAnalysis, 
-                 scaler=StandardScaler, seed=224,
+                 scaler=StandardScaler, seed=224, return_predictions=False,
                  verbose=False, fit_kwargs={}):
     
     X_train, X_val = data_features[train_idx], data_features[val_idx]
@@ -413,7 +413,8 @@ def train_single_model(data_features, labels, train_idx, val_idx, method=LinearD
 
     if verbose:
         print(confusion_mat)
-
+    if return_predictions:
+        return acc, confusion_mat, model, {"y_true":y_val, "y_pred":y_pred}
     return acc, confusion_mat, model
 
 def saveresults_pickle(new_rows, inputfile=None, outputfile=None, backup=True, resetindex=True):
