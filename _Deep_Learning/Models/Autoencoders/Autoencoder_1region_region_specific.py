@@ -30,6 +30,7 @@ data_folder="Data/"
 subject = 8;  selected_regions = [0, 7, 12, 13, 15, 20, 21, 23, 26, 27, 34, 35, 50, 51, 58]
 DataType = "EEG"
 # selected_regions for subject 1 =[1, 7, 17, 19, 23, 31, 43, 51, 59, 61, 67]  # selected_regions for subject 2= [4, 14, 32, 33, 34, 44, 47, 48, 50, 62]
+# subject 8 = [0, 7, 12, 13, 15, 20, 21, 23, 26, 27, 34, 35, 50, 51, 58]
 
 today = date.today()
 # print(f"\n\nCurrent working directory: {os.getcwd()}") # Current working directory: /home/silvia/Documents/GitHub/BCI_Project
