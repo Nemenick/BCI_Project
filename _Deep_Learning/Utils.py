@@ -438,48 +438,76 @@ def evaluate_classification_by_region( model, x_test, y_test, threshold=0.5, sav
 
 def evaluate_encoder_decoder_spectra_by_region(model, x_test, psd_test, y_test, save_name=None):
     """
-    Compute reconstruction performance grouped by abs(y_test).
+    Compute reconstruction performance grouped by abs(y_test),
+    supporting both EEG-only and EEG+MEG.
     """
 
-    # Reconstruct
     spectra_recon = model.predict(x_test)
+
+    # unwrap dict outputs
+    if isinstance(spectra_recon, dict):
+        spectra_recon = spectra_recon["reconstruction"]
+
+    spectra_recon = np.asarray(spectra_recon)
+    psd_test = np.asarray(psd_test)
 
     results = []
 
-    for region in np.unique(np.abs(y_test)):
-        mask = np.abs(y_test) == region
-        spectra_true = psd_test[mask]
-        spectra_pred = spectra_recon[mask]
+    n_channels = 1 if psd_test.ndim == 2 else psd_test.shape[-1]
 
-        if len(spectra_true) == 0:
+    for region in np.unique(np.abs(y_test)):
+
+        mask = np.abs(y_test) == region
+
+        true_r = psd_test[mask]
+        pred_r = spectra_recon[mask]
+
+        if len(true_r) == 0:
             continue
 
-        # Flatten per-sample for error computation
-        spectra_true_f = spectra_true.reshape(len(spectra_true), -1)
-        spectra_pred_f = spectra_pred.reshape(len(spectra_pred), -1)
-
-        # Per-sample errors
-        mse_per_sample = np.mean((spectra_true_f - spectra_pred) ** 2, axis=1)
-        mae_per_sample = np.mean(np.abs(spectra_true_f - spectra_pred_f), axis=1)
-
         row = {
-            "ROIs": region-1,
-            "NROIs": len([region]),
-            "n_windows": len(spectra_true),
-            "MSE_mean": mse_per_sample.mean(),
-            "MSE_std": mse_per_sample.std(),
-            "MAE_mean": mae_per_sample.mean(),
-            "MAE_std": mae_per_sample.std(),
+            "ROIs": region - 1,
+            "n_windows": len(true_r),
         }
+
+        # --- EEG only case ---
+        if n_channels == 1:
+            axes = tuple(range(1, true_r.ndim))
+            mse = np.mean((true_r - pred_r) ** 2, axis=axes)
+            mae = np.mean(np.abs(true_r - pred_r), axis=axes)
+
+            row.update({
+                "MSE_mean": mse.mean(),
+                "MSE_std": mse.std(),
+                "MAE_mean": mae.mean(),
+                "MAE_std": mae.std(),
+            })
+
+        # --- EEG + MEG case ---
+        else:
+            for ch, name in enumerate(["EEG", "MEG"]):
+                t = true_r[..., ch]
+                p = pred_r[..., ch]
+
+                axes = tuple(range(1, t.ndim))
+
+                mse = np.mean((t - p) ** 2, axis=axes)
+                mae = np.mean(np.abs(t - p), axis=axes)
+
+                row.update({
+                    f"MSE_mean_{name}": mse.mean(),
+                    f"MSE_std_{name}": mse.std(),
+                    f"MAE_mean_{name}": mae.mean(),
+                    f"MAE_std_{name}": mae.std(),
+                })
 
         results.append(row)
 
     df = pd.DataFrame(results).sort_values("ROIs").reset_index(drop=True)
 
-    # Save
     if save_name is not None:
         df.to_csv(save_name, index=False)
-        print(f"Region-wise reconstruction performance saved to {save_name}")
+        print(f"Saved region-wise reconstruction performance to {save_name}")
 
     return df
 
@@ -589,29 +617,49 @@ def plot_random_PowerSpectra_reconstructed( model, x_test, psd_test, freq_bins, 
     rng = np.random.default_rng(random_state)
     indices = rng.choice(len(x_test), size=n_samples, replace=False)
 
+    spectra_rec = model.predict(x_test)
+    if isinstance(spectra_rec, dict):
+        spectra_rec = spectra_rec["reconstruction"]
+
+    spectra_rec = np.asarray(spectra_rec)
+    psd_test = np.asarray(psd_test)
+
+    n_channels = 1 if psd_test.ndim == 2 else psd_test.shape[-1]
 
     lw = 2.3
 
     for k, idx in enumerate(indices):
-        # --- reconstruction (EXACTLY like your snippet)
+
         x_in = x_test[idx:idx+1]
-        power_rec = model(x_in)
+        rec = model(x_in)
 
-        if isinstance(power_rec, dict):
-            power_rec = power_rec["reconstruction"]
-        power_rec = power_rec.numpy()
+        if isinstance(rec, dict):
+            rec = rec["reconstruction"]
+        rec = np.asarray(rec)[0]
 
-        plt.figure(figsize=(10, 4))
-        plt.plot(freq_bins, psd_test[idx,:], linewidth=lw, label="original", color="C0")
-        plt.plot(freq_bins, power_rec[0,:], linewidth=lw, label="reconstructed", color="C1")
+        # -------- EEG only --------
+        if n_channels == 1:
+            plt.figure(figsize=(10, 4))
+            plt.plot(freq_bins, psd_test[idx], label="original", linewidth=lw)
+            plt.plot(freq_bins, rec, label="reconstructed", linewidth=lw)
 
-        plt.title(f"Sample {idx}")
-        plt.xlabel("Freq_bin")
-        plt.ylabel("Amplitude")
-        plt.legend()
+        # -------- EEG + MEG --------
+        else:
+            fig, axes = plt.subplots(1, 2, figsize=(14, 4))
+
+            labels = ["EEG", "MEG"]
+
+            for ch in range(2):
+                axes[ch].plot(freq_bins, psd_test[idx, :, ch], label="original", linewidth=lw)
+                axes[ch].plot(freq_bins, rec[:, ch], label="reconstructed", linewidth=lw)
+                axes[ch].set_title(labels[ch])
+                axes[ch].set_xlabel("Freq")
+                axes[ch].legend()
+
+        plt.suptitle(f"Sample {idx}")
         plt.tight_layout()
 
-        fname = os.path.join(save_dir, f"Spectra_reconstruced_{k:02d}_idx{idx}.png")
+        fname = os.path.join(save_dir, f"Spectra_reconstructed_{k:02d}_idx{idx}.png")
         plt.savefig(fname, dpi=150)
         plt.close()
 
@@ -761,3 +809,105 @@ def split_train_val_test(x, train_percentage=0.7, validation_percentage=0.15, te
     )
 
     return ((X_train, y_train),(X_val, y_val),(X_test, y_test))
+
+
+
+####################################### OLD #############################################
+"""
+def plot_random_PowerSpectra_reconstructed( model, x_test, psd_test, freq_bins, n_samples=10, save_dir="reconstructed_spectra", random_state=224):
+    
+    Plot original, reconstructed, and filtered traces for random samples.
+
+    Parameters
+    ----------
+    model : keras / tf model Trained autoencoder.
+    x_test : np.ndarray  Shape: (n_samples, n_times)
+    
+    
+    os.makedirs(save_dir, exist_ok=True)
+    with open(os.path.join(save_dir, ".gitignore"), "w") as f:
+        f.write("*")
+
+    rng = np.random.default_rng(random_state)
+    indices = rng.choice(len(x_test), size=n_samples, replace=False)
+
+
+    lw = 2.3
+
+    for k, idx in enumerate(indices):
+        # --- reconstruction (EXACTLY like your snippet)
+        x_in = x_test[idx:idx+1]
+        power_rec = model(x_in)
+
+        if isinstance(power_rec, dict):
+            power_rec = power_rec["reconstruction"]
+        power_rec = power_rec.numpy()
+
+        plt.figure(figsize=(10, 4))
+        plt.plot(freq_bins, psd_test[idx,:], linewidth=lw, label="original", color="C0")
+        plt.plot(freq_bins, power_rec[0,:], linewidth=lw, label="reconstructed", color="C1")
+
+        plt.title(f"Sample {idx}")
+        plt.xlabel("Freq_bin")
+        plt.ylabel("Amplitude")
+        plt.legend()
+        plt.tight_layout()
+
+        fname = os.path.join(save_dir, f"Spectra_reconstruced_{k:02d}_idx{idx}.png")
+        plt.savefig(fname, dpi=150)
+        plt.close()
+
+
+
+
+def evaluate_encoder_decoder_spectra_by_region(model, x_test, psd_test, y_test, save_name=None):
+
+   # Compute reconstruction performance grouped by abs(y_test).
+
+
+    # Reconstruct
+    spectra_recon = model.predict(x_test)
+
+    results = []
+
+    for region in np.unique(np.abs(y_test)):
+        mask = np.abs(y_test) == region
+        spectra_true = psd_test[mask]
+        spectra_pred = spectra_recon[mask]
+
+        if len(spectra_true) == 0:
+            continue
+        
+        axes = tuple(range(1, spectra_true.ndim))
+
+        mse_per_sample = np.mean((spectra_true - spectra_pred) ** 2, axis=axes)
+        mae_per_sample = np.mean(np.abs(spectra_true - spectra_pred), axis=axes)
+
+        row = {
+            "ROIs": region-1,
+            "NROIs": len([region]),
+            "n_windows": len(spectra_true),
+            "MSE_mean": mse_per_sample.mean(),
+            "MSE_std": mse_per_sample.std(),
+            "MAE_mean": mae_per_sample.mean(),
+            "MAE_std": mae_per_sample.std(),
+        }
+
+        results.append(row)
+
+    df = pd.DataFrame(results).sort_values("ROIs").reset_index(drop=True)
+
+    # Save
+    if save_name is not None:
+        df.to_csv(save_name, index=False)
+        print(f"Region-wise reconstruction performance saved to {save_name}")
+
+    return df
+
+
+
+
+
+
+
+"""

@@ -221,6 +221,8 @@ class MultiTaskModel_PowerSpectra(tf.keras.Model):
         use_classifier=True,
         latent_activation =  None, # use tanh if you want to compare with handextracted features ???
         use_GRU = False,
+        build_convolutional_decoder = False,
+        EEG_concat_MEG = False,
         **kwargs
     ):
         super().__init__(**kwargs)
@@ -232,6 +234,8 @@ class MultiTaskModel_PowerSpectra(tf.keras.Model):
         self.kernel_size = kernel_size
         self.activation_fn = activation_fn
         self.latent_activation = latent_activation
+        self.conv_decoder = build_convolutional_decoder
+        self.EEG_concat_MEG = EEG_concat_MEG
 
         # Build components
         if use_GRU:
@@ -294,33 +298,39 @@ class MultiTaskModel_PowerSpectra(tf.keras.Model):
     # --------------------------------------------------
     def _build_decoder(self):
 
-        latent_inputs = layers.Input(shape=(self.latent_dim,), name="decoder_input")
-        x = layers.Dense(16*128)(latent_inputs)
-        x = layers.Reshape((16, 128))(x)
-
-        for num,filters in enumerate(reversed(self.conv_filters[0:2])):
-            if num == 0:
-                x = layers.UpSampling1D()(x)
-            x = layers.Conv1D(filters, self.kernel_size, padding="same")(x)
-            x = self.activation_fn()(x)
-        x = layers.Flatten()(x)
-        x = layers.Dense(self.output_shape)(x)
-        outputs = layers.Activation("linear", name="reconstruction")(x)
-        
         # CONVOLUTIONAL IF NEEDED
-        """latent_inputs = layers.Input(shape=(self.latent_dim,), name="decoder_input")
-        x = layers.Dense(32*64)(latent_inputs)
-        x = layers.Reshape((32,64))(x)
+        if self.conv_decoder:
+            latent_inputs = layers.Input(shape=(self.latent_dim,), name="decoder_input")
+            x = layers.Dense(32*64)(latent_inputs)
+            x = layers.Reshape((32,64))(x)
 
-        for num,filters in enumerate(reversed(self.conv_filters[0:3])):
-            if num != 2:
-                x = layers.Conv1D(filters, self.kernel_size+1)(x)
-                x = self.activation_fn()(x)
+            for num,filters in enumerate(reversed(self.conv_filters[0:3])):
+                if num != 2:
+                    x = layers.Conv1D(filters, self.kernel_size+1)(x)
+                    x = self.activation_fn()(x)
+                else:
+                    x = layers.Conv1D(1+self.EEG_concat_MEG, self.kernel_size)(x)
+
+            x = layers.Activation("linear")(x)
+            
+            if self.EEG_concat_MEG:
+                outputs = x
             else:
-                x = layers.Conv1D(1, self.kernel_size)(x)
+                outputs = layers.Flatten()(x)
 
-        x = layers.Activation("linear")(x)
-        outputs = layers.Flatten()(x)"""
+        else:
+            latent_inputs = layers.Input(shape=(self.latent_dim,), name="decoder_input")
+            x = layers.Dense(16*128)(latent_inputs)
+            x = layers.Reshape((16, 128))(x)
+
+            for num,filters in enumerate(reversed(self.conv_filters[0:2])):
+                if num == 0:
+                    x = layers.UpSampling1D()(x)
+                x = layers.Conv1D(filters, self.kernel_size, padding="same")(x)
+                x = self.activation_fn()(x)
+            x = layers.Flatten()(x)
+            x = layers.Dense(self.output_shape)(x)
+            outputs = layers.Activation("linear", name="reconstruction")(x)
 
         return models.Model(latent_inputs, outputs, name="decoder")
 
