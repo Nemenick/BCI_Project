@@ -3,12 +3,17 @@ import scipy.signal as sc_sig
 from numpy.lib.stride_tricks import sliding_window_view
 from sklearn.model_selection import StratifiedKFold, train_test_split
 import os
+import sys
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.metrics import (accuracy_score, precision_score, recall_score, f1_score,
                              mean_squared_error, mean_absolute_error)
+from mne.time_frequency import psd_array_multitaper
+sys.path.append(os.path.abspath("Codes"))
+sys.path.append(os.path.abspath("_Deep_Learning"))
 
+from BCI_Library import read_subject
 ############################# Simple functions #############################
 
 def freq_filter(signal,sf,freqs,type_filter="bandpass", order_filter=4, axis=-1):
@@ -23,7 +28,6 @@ def freq_filter(signal,sf,freqs,type_filter="bandpass", order_filter=4, axis=-1)
     filtered_sig=sc_sig.filtfilt(filt_b1,filt_a1,sc_sig.detrend(signal, axis=axis), axis=axis) # both detrend and filtfilt have axis = -1 by default OK!
     return filtered_sig
 
-
 def extract_windows(x, win_len=128, shift=62):
     """ OK, verified (see Test.ipynb -> Function extract window check)"""
     # x shape: (192, 68, 748) 
@@ -37,7 +41,6 @@ def extract_windows(x, win_len=128, shift=62):
     windows = windows[..., ::shift, :]
 
     return windows
-
 
 def expand_trials_to_regions(X, y):
     """
@@ -74,9 +77,7 @@ def expand_trials_to_regions(X, y):
 
     return X_out, y_out
 
-
 ############################ "Composite" functions #############################
-
 
 def five_folds_train_val_test(
     X, y,
@@ -128,7 +129,6 @@ def five_folds_train_val_test(
             train_idx
         )
 
-
 def windowize(X,Y, win_len=128, shift=62):
     """
     Function to extract windows from X and replicate labels Y accordingly 
@@ -152,6 +152,102 @@ def windowize(X,Y, win_len=128, shift=62):
     # (n_traces*n_windows_per_trace, win_len), (n_traces*n_windows_per_trace,)
 
     return X_windowed_reshaped, Y_windowed_reshaped
+
+def load_and_preprocess(data_folder, modality, subject, start, end):
+    rest = read_subject(data_folder, modality, "Baseline", subject)
+    mi   = read_subject(data_folder, modality, "MI", subject)
+    data = np.concatenate((rest, mi), axis=0)
+    data = freq_filter(data, sf=250, freqs=[4, 45], type_filter="bandpass")
+    data = data[:, :, start:end]
+
+    return data, rest.shape[0], mi.shape[0]
+
+def split_create_windows(data, y, train_idx, block_idx, n_regions, win_len, shift, random_seed=224, regione=False):
+    X_train = data[train_idx]
+    y_train = y[train_idx]
+    # X_Train shape: (n_trials_train, n_regions, n_timepoints)
+    # y_Train shape: (n_trials_train,) ∈ {-1,+1}
+
+    X_Block = data[block_idx]
+    y_Block = y[block_idx]
+    
+    if regione:
+        X_train = X_train[:,regione]
+        X_Block = X_Block[:,regione]
+        assert n_regions == 1
+
+    X_val, X_test, y_val, y_test = train_test_split(
+    X_Block, y_Block, test_size=0.5,         
+    shuffle=True, stratify=y_Block,     # preserves label balance
+    random_state=random_seed)
+
+    y_train = np.repeat(y_train[:,np.newaxis], repeats=n_regions,axis=1)
+    # assegno valore in base a ROI, da ±1 a ±68
+    for col in range(y_train.shape[1]):
+        y_train[:, col] *= (col+1)
+    
+    # X_Train shape: (n_trials_train, n_regions, n_timepoints)
+    # y_Train shape: (n_trials_train, n_regions) ∈ {-68,...-1,+1,...,+68}
+
+    y_val = np.repeat(y_val[:,np.newaxis], repeats=n_regions,axis=1)
+    for col in range(y_val.shape[1]):
+        y_val[:, col] *= (col+1)
+
+    y_test = np.repeat(y_test[:,np.newaxis], repeats=n_regions,axis=1)
+    for col in range(y_test.shape[1]):
+        y_test[:, col] *= (col+1)
+
+    x_train = X_train.reshape(-1, X_train.shape[-1]) # shape (n_trials*n_regions, n_timepoints)
+    x_val = X_val.reshape(-1, X_val.shape[-1])
+    x_test = X_test.reshape(-1, X_test.shape[-1])
+
+    y_train = y_train.reshape(-1)
+    y_val = y_val.reshape(-1)
+    y_test = y_test.reshape(-1)
+
+    # x_train shape: (n_trials_train * n_regions, n_timepoints)
+    # y_train shape: (n_trials_train * n_regions,) ∈ {-68,...,-1,+1,...,+68}
+
+    x_train, y_train = windowize(x_train, y_train, win_len=win_len, shift=shift)
+    x_val, y_val     = windowize(x_val, y_val, win_len=win_len, shift=shift)
+    x_test, y_test   = windowize(x_test, y_test, win_len=win_len, shift=shift)
+    # shape: x -> (n_windows, timepoints) ; y -> (n_windows,)
+    # y is ± region index (SIGN is negative for REST and positive for MI; absolute value is region index)
+
+    return x_train, y_train, x_val, y_val, x_test, y_test
+
+def compute_psd(x_train, x_val, x_test, y_train, y_val, y_test, sampling_hz, fmin_spectra, fmax_spectra, bandwidth_spectra, log_spectra, scaler):
+    # x_train should be array with shape (n_windows, n_timepoints) before standardization after windowing
+    psd_train, freqs = psd_array_multitaper(x_train, sfreq=sampling_hz, fmin=fmin_spectra, fmax=fmax_spectra,
+                            bandwidth=bandwidth_spectra, adaptive=True, verbose=False)
+    psd_val, freqs   = psd_array_multitaper(x_val, sfreq=sampling_hz, fmin=fmin_spectra, fmax=fmax_spectra,
+                            bandwidth=bandwidth_spectra, adaptive=True, verbose=False)
+    psd_test, freqs  = psd_array_multitaper(x_test, sfreq=sampling_hz, fmin=fmin_spectra, fmax=fmax_spectra,
+                            bandwidth=bandwidth_spectra, adaptive=True, verbose=False)
+    if log_spectra:
+        psd_train = np.log10(psd_train)
+        psd_val = np.log10(psd_val)
+        psd_test = np.log10(psd_test)
+
+    psd_train = scaler.fit_transform(psd_train, y_train)
+    psd_val = scaler.transform(psd_val, y_val)
+    psd_test = scaler.transform(psd_test, y_test)
+    
+    return psd_train, psd_val, psd_test, freqs
+
+def scale_newax (x_train, y_train, x_val, y_val, x_test, y_test, scaler):
+    # scaler = RegionWiseStandardizer()
+    x_train = scaler.fit_transform(x_train, y_train)
+    x_val = scaler.transform(x_val, y_val)
+    x_test = scaler.transform(x_test, y_test)
+    # scaler = TraceWiseStandardizer()
+    # x_train = scaler.transform(x_train)
+    # x_val = scaler.transform(x_val)
+    # x_test = scaler.transform(x_test)
+    x_train = x_train[..., np.newaxis]  
+    x_val = x_val[..., np.newaxis]  
+    x_test = x_test[..., np.newaxis] 
+    return x_train, x_val, x_test
 
 
 class RegionWiseStandardizer:
@@ -227,7 +323,6 @@ class RegionWiseStandardizer:
     def fit_transform(self, X, y):
         return self.fit(X, y).transform(X, y)
 
-
 class TraceWiseStandardizer:
 
     def __init__(self, method="zscore"):
@@ -253,7 +348,6 @@ class TraceWiseStandardizer:
             return self.minmax_normalizer(X)
         else:
             raise ValueError("Unknown method")
-
 
 ############################## Saving results / Performances #############################
 

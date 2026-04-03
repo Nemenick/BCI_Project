@@ -208,6 +208,7 @@ class MultiTaskModel(tf.keras.Model):
         else:
             raise RuntimeError("Model has neither decoder nor classifier.")  
 
+
 class MultiTaskModel_PowerSpectra(tf.keras.Model):
     def __init__(
         self,
@@ -429,12 +430,10 @@ class MultiTaskModel_PowerSpectra(tf.keras.Model):
             raise RuntimeError("Model has neither decoder nor classifier.")  
 
 
-
-
 class MultiTaskModel_Multimodal(MultiTaskModel):
     """
-    Used to take as  input  EEG (or MEG) 
-    and reconstruct the     MEG (or EEG), the other modality
+    Used to take as  input      EEG (or MEG) 
+    and reconstruct the other   MEG (or EEG)
     """
     # --------------------------------------------------
     # RE - DEFINE FIT CASES
