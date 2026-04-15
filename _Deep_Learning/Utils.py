@@ -162,7 +162,7 @@ def load_and_preprocess(data_folder, modality, subject, start, end):
 
     return data, rest.shape[0], mi.shape[0]
 
-def split_create_windows(data, y, train_idx, block_idx, n_regions, win_len, shift, random_seed=224, regione=False):
+def split_create_windows(data, y, train_idx, block_idx, n_regions, win_len, shift, random_seed=224, regione=None):
     X_train = data[train_idx]
     y_train = y[train_idx]
     # X_Train shape: (n_trials_train, n_regions, n_timepoints)
@@ -171,7 +171,7 @@ def split_create_windows(data, y, train_idx, block_idx, n_regions, win_len, shif
     X_Block = data[block_idx]
     y_Block = y[block_idx]
     
-    if regione:
+    if regione!=None:
         X_train = X_train[:,regione]
         X_Block = X_Block[:,regione]
         assert n_regions == 1
