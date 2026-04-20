@@ -27,6 +27,8 @@ from Utils import TraceWiseStandardizer, RegionWiseStandardizer
 
 from BCI_Library import read_subject
 
+from Utils import load_and_preprocess, split_create_windows, compute_psd, scale_newax
+
 data_folder="Data/"
 subject = 18
 DataType = "EEG+MEG"
@@ -101,28 +103,18 @@ with open(savedir+'_Backup_Library.py', "w") as f:
 # TODO: 
 # COME NORMALIZZARE? (VAEGG esclude tutti quelli superiori a 400 microV; BrainOmni eachchannel is normalised to zero mean and unitvariance 
 # at sample level)
-
-
 ###################################################################################################################################
 # Read data_EEG - filter
 # TODO ATTENTION to put Rest before, then MI (for create_labels function)  
-data_2_Rest_EEG = read_subject(data_folder, "EEG", "Baseline",subject)
-data_2_MI_EEG = read_subject(data_folder, "EEG", "MI",subject)
-data_EEG = np.concatenate((data_2_Rest_EEG, data_2_MI_EEG), axis=0)
 
-data_EEG = freq_filter(data_EEG, sf=250, freqs=[4,45], type_filter="bandpass") # axis = -1 by default
-data_EEG = data_EEG[:,:,start:end]        #  data_EEG.shape = (192, 68, 748)
+data_EEG, rest_len_eeg, mi_len_eeg = load_and_preprocess(data_folder="Data/", modality="EEG", subject=subject, start=start, end=end)
 
+data_MEG, rest_len_meg, mi_len_meg = load_and_preprocess(data_folder="Data/", modality="MEG", subject=subject, start=start, end=end)
 
-data_2_Rest_MEG = read_subject(data_folder, "MEG", "Baseline",subject)
-data_2_MI_MEG = read_subject(data_folder, "MEG", "MI",subject)
-data_MEG = np.concatenate((data_2_Rest_MEG, data_2_MI_MEG), axis=0)
-
-data_MEG = freq_filter(data_MEG, sf=250, freqs=[4,45], type_filter="bandpass") # axis = -1 by default
-data_MEG = data_MEG[:,:,start:end]        #  data_MEG.shape = (192, 68, 748)
+assert rest_len_eeg == rest_len_meg and mi_len_eeg == mi_len_meg, "Mismatch in number of Rest or MI trials between EEG and MEG data."
 
 # y shape: (n_trials,) with negative values for Rest and positive for MI
-y = np.concatenate([-np.ones((data_2_Rest_EEG.shape[0])), np.ones((data_2_MI_EEG.shape[0]))])
+y = np.concatenate([-np.ones((rest_len_eeg)), np.ones((mi_len_eeg))])
 
 ###################################################################################################################################
 # Split - Extract windows
@@ -134,176 +126,46 @@ evaluated_by_regions_dataframes = []
 n_folds=5
 kf = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=random_seed)
 
-
 for fold_idx, (train_idx, block_idx) in enumerate(kf.split(data_EEG, y)):
     split_num = fold_idx+1
 
+    # NORMALIZATION (per region?)
+    # Optimizing EEG ICA Decomposition with Machine Learning: A CNN-Based Alternative to EEGLAB for Fast and Scalable Brain Activity Analysis
+    # Assessing the Role of EEG Biosignal Preprocessing to Enhance Multiscale Fuzzy Entropy in Alzheimer’s Disease Detection
+    # (when applying on multiple subjects) Cross-Subject EEG-Based Emotion Recognition Through Neural Networks With Stratified Normalization 
+    # NORMALIZZA ANCHE PSD
+
     ############################################################ EEG #############################################################################
 
-    X_train_EEG = data_EEG[train_idx]
-    y_train_EEG = y[train_idx]
-    # X_Train shape: (n_trials_train, n_regions, n_timepoints)
-    # y_Train shape: (n_trials_train,) ∈ {-1,+1}
-
-    X_Block_EEG = data_EEG[block_idx]
-    y_Block_EEG = y[block_idx]
+    x_train_EEG, y_train_EEG, x_val_EEG, y_val_EEG, x_test_EEG, y_test_EEG = (
+    split_create_windows(data_EEG, y, train_idx, block_idx, n_regions, win_len=input_shape, shift=shift,
+                            random_seed=random_seed)
+                            )
 
 
-    X_val_EEG, X_test_EEG, y_val_EEG, y_test_EEG = train_test_split(
-    X_Block_EEG, y_Block_EEG, test_size=0.5,         
-    shuffle=True, stratify=y_Block_EEG,     # preserves label balance
-    random_state=random_seed)
+    psd_train_EEG, psd_val_EEG, psd_test_EEG, freqs = compute_psd(
+        x_train_EEG, x_val_EEG, x_test_EEG, y_train_EEG, y_val_EEG, y_test_EEG, 
+        sampling_hz, fmin_spectra, fmax_spectra, bandwidth_spectra, log_spectra, scaler=RegionWiseStandardizer()
+        )
 
-
-    y_train_EEG = np.repeat(y_train_EEG[:,np.newaxis], repeats=n_regions,axis=1)
-    # assegno valore in base a ROI, da ±1 a ±68
-    for col in range(y_train_EEG.shape[1]):
-        y_train_EEG[:, col] *= (col+1)
+    x_train_EEG, x_val_EEG, x_test_EEG = scale_newax (x_train_EEG, y_train_EEG, x_val_EEG, y_val_EEG, x_test_EEG, y_test_EEG, scaler=RegionWiseStandardizer())
     
-    # X_Train shape: (n_trials_train, n_regions, n_timepoints)
-    # y_Train shape: (n_trials_train, n_regions) ∈ {-68,...-1,+1,...,+68}
-
-    y_val_EEG = np.repeat(y_val_EEG[:,np.newaxis], repeats=n_regions,axis=1)
-    for col in range(y_val_EEG.shape[1]):
-        y_val_EEG[:, col] *= (col+1)
-
-    y_test_EEG = np.repeat(y_test_EEG[:,np.newaxis], repeats=n_regions,axis=1)
-    for col in range(y_test_EEG.shape[1]):
-        y_test_EEG[:, col] *= (col+1)
-
-    x_train_EEG = X_train_EEG.reshape(-1, X_train_EEG.shape[-1]) # shape (n_trials*n_regions, n_timepoints)
-    x_val_EEG = X_val_EEG.reshape(-1, X_val_EEG.shape[-1])
-    x_test_EEG = X_test_EEG.reshape(-1, X_test_EEG.shape[-1])
-
-    y_train_EEG = y_train_EEG.reshape(-1)
-    y_val_EEG = y_val_EEG.reshape(-1)
-    y_test_EEG = y_test_EEG.reshape(-1)
-
-    # x_train_EEG shape: (n_trials_train * n_regions, n_timepoints)
-    # y_train_EEG shape: (n_trials_train * n_regions,) ∈ {-68,...,-1,+1,...,+68}
-
-    x_train_EEG, y_train_EEG = windowize(x_train_EEG, y_train_EEG, win_len=input_shape, shift=shift)
-    x_val_EEG, y_val_EEG     = windowize(x_val_EEG, y_val_EEG, win_len=input_shape, shift=shift)
-    x_test_EEG, y_test_EEG   = windowize(x_test_EEG, y_test_EEG, win_len=input_shape, shift=shift)
-    # shape: x -> (n_windows, timepoints) ; y -> (n_windows,)
-    # y is ± region index (SIGN is negative for REST and positive for MI; absolute value is region index)
-
-    psd_train_EEG, freqs = psd_array_multitaper(x_train_EEG, sfreq=sampling_hz, fmin=fmin_spectra, fmax=fmax_spectra,
-                            bandwidth=bandwidth_spectra, adaptive=True, verbose=False)
-    psd_val_EEG, freqs   = psd_array_multitaper(x_val_EEG, sfreq=sampling_hz, fmin=fmin_spectra, fmax=fmax_spectra,
-                            bandwidth=bandwidth_spectra, adaptive=True, verbose=False)
-    psd_test_EEG, freqs  = psd_array_multitaper(x_test_EEG, sfreq=sampling_hz, fmin=fmin_spectra, fmax=fmax_spectra,
-                            bandwidth=bandwidth_spectra, adaptive=True, verbose=False)
-    if log_spectra:
-        psd_train_EEG = np.log10(psd_train_EEG)
-        psd_val_EEG = np.log10(psd_val_EEG)
-        psd_test_EEG = np.log10(psd_test_EEG)
- 
-    # NORMALIZATION (per region?)
-    # Optimizing EEG ICA Decomposition with Machine Learning: A CNN-Based Alternative to EEGLAB for Fast and Scalable Brain Activity Analysis
-    # Assessing the Role of EEG Biosignal Preprocessing to Enhance Multiscale Fuzzy Entropy in Alzheimer’s Disease Detection
-    # (when applying on multiple subjects) Cross-Subject EEG-Based Emotion Recognition Through Neural Networks With Stratified Normalization 
-    # NORMALIZZA ANCHE PSD
-    scaler = RegionWiseStandardizer()
-    x_train_EEG = scaler.fit_transform(x_train_EEG, y_train_EEG)
-    x_val_EEG = scaler.transform(x_val_EEG, y_val_EEG)
-    x_test_EEG = scaler.transform(x_test_EEG, y_test_EEG)
-    # scaler = TraceWiseStandardizer()
-    # x_train_EEG = scaler.transform(x_train_EEG)
-    # x_val_EEG = scaler.transform(x_val_EEG)
-    # x_test_EEG = scaler.transform(x_test_EEG)
-    x_train_EEG = x_train_EEG[..., np.newaxis]  
-    x_val_EEG = x_val_EEG[..., np.newaxis]  
-    x_test_EEG = x_test_EEG[..., np.newaxis] 
-
-    scaler = RegionWiseStandardizer()
-    psd_train_EEG = scaler.fit_transform(psd_train_EEG, y_train_EEG)
-    psd_val_EEG = scaler.transform(psd_val_EEG, y_val_EEG)
-    psd_test_EEG = scaler.transform(psd_test_EEG, y_test_EEG)
-
+    
     ######################################################### MEG ######################################################################
-    X_train_MEG = data_MEG[train_idx]
-    y_train = y[train_idx]
-    # X_Train shape: (n_trials_train, n_regions, n_timepoints)
-    # y_Train shape: (n_trials_train,) ∈ {-1,+1}
 
-    X_Block_MEG = data_MEG[block_idx]
-    y_Block = y[block_idx]
-
-    # Checked riproducibility of chose is ok, I am consistent with EEG !! (If data are stored consistentely)
-    X_val_MEG, X_test_MEG, y_val, y_test = train_test_split(
-    X_Block_MEG, y_Block, test_size=0.5,         
-    shuffle=True, stratify=y_Block,     # preserves label balance
-    random_state=random_seed)
+    x_train_MEG, y_train_MEG, x_val_MEG, y_val_MEG, x_test_MEG, y_test_MEG = (
+    split_create_windows(data_MEG, y, train_idx, block_idx, n_regions, win_len=input_shape, shift=shift,
+                            random_seed=random_seed)
+                            )
 
 
-    y_train = np.repeat(y_train[:,np.newaxis], repeats=n_regions,axis=1)
-    # assegno valore in base a ROI, da ±1 a ±68
-    for col in range(y_train.shape[1]):
-        y_train[:, col] *= (col+1)
-    
-    # X_Train shape: (n_trials_train, n_regions, n_timepoints)
-    # y_Train shape: (n_trials_train, n_regions) ∈ {-68,...-1,+1,...,+68}
-
-    y_val = np.repeat(y_val[:,np.newaxis], repeats=n_regions,axis=1)
-    for col in range(y_val.shape[1]):
-        y_val[:, col] *= (col+1)
-
-    y_test = np.repeat(y_test[:,np.newaxis], repeats=n_regions,axis=1)
-    for col in range(y_test.shape[1]):
-        y_test[:, col] *= (col+1)
-
-    x_train_MEG = X_train_MEG.reshape(-1, X_train_MEG.shape[-1]) # shape (n_trials*n_regions, n_timepoints)
-    x_val_MEG = X_val_MEG.reshape(-1, X_val_MEG.shape[-1])
-    x_test_MEG = X_test_MEG.reshape(-1, X_test_MEG.shape[-1])
-
-    y_train = y_train.reshape(-1)
-    y_val = y_val.reshape(-1)
-    y_test = y_test.reshape(-1)
-
-    # x_train_MEG shape: (n_trials_train * n_regions, n_timepoints)
-    # y_train shape: (n_trials_train * n_regions,) ∈ {-68,...,-1,+1,...,+68}
-
-    x_train_MEG, y_train = windowize(x_train_MEG, y_train, win_len=input_shape, shift=shift)
-    x_val_MEG, y_val     = windowize(x_val_MEG, y_val, win_len=input_shape, shift=shift)
-    x_test_MEG, y_test   = windowize(x_test_MEG, y_test, win_len=input_shape, shift=shift)
-    # shape: x -> (n_windows, timepoints) ; y -> (n_windows,)
-    # y is ± region index (SIGN is negative for REST and positive for MI; absolute value is region index)
-
-    psd_train_MEG, freqs = psd_array_multitaper(x_train_MEG, sfreq=sampling_hz, fmin=fmin_spectra, fmax=fmax_spectra,
-                            bandwidth=bandwidth_spectra, adaptive=True, verbose=False)
-    psd_val_MEG, freqs   = psd_array_multitaper(x_val_MEG, sfreq=sampling_hz, fmin=fmin_spectra, fmax=fmax_spectra,
-                            bandwidth=bandwidth_spectra, adaptive=True, verbose=False)
-    psd_test_MEG, freqs  = psd_array_multitaper(x_test_MEG, sfreq=sampling_hz, fmin=fmin_spectra, fmax=fmax_spectra,
-                            bandwidth=bandwidth_spectra, adaptive=True, verbose=False)
-    if log_spectra:
-        psd_train_MEG = np.log10(psd_train_MEG)
-        psd_val_MEG = np.log10(psd_val_MEG)
-        psd_test_MEG = np.log10(psd_test_MEG)
- 
+    psd_train_MEG, psd_val_MEG, psd_test_MEG, freqs = compute_psd(
+        x_train_MEG, x_val_MEG, x_test_MEG, y_train_MEG, y_val_MEG, y_test_MEG, 
+        sampling_hz, fmin_spectra, fmax_spectra, bandwidth_spectra, log_spectra, scaler=RegionWiseStandardizer()
+        )
 
 
-    # NORMALIZATION (per region?)
-    # Optimizing EEG ICA Decomposition with Machine Learning: A CNN-Based Alternative to EEGLAB for Fast and Scalable Brain Activity Analysis
-    # Assessing the Role of EEG Biosignal Preprocessing to Enhance Multiscale Fuzzy Entropy in Alzheimer’s Disease Detection
-    # (when applying on multiple subjects) Cross-Subject EEG-Based Emotion Recognition Through Neural Networks With Stratified Normalization 
-    # NORMALIZZA ANCHE PSD
-    scaler = RegionWiseStandardizer()
-    x_train_MEG = scaler.fit_transform(x_train_MEG, y_train)
-    x_val_MEG = scaler.transform(x_val_MEG, y_val)
-    x_test_MEG = scaler.transform(x_test_MEG, y_test)
-    # scaler = TraceWiseStandardizer()
-    # x_train_MEG = scaler.transform(x_train_MEG)
-    # x_val_MEG = scaler.transform(x_val_MEG)
-    # x_test_MEG = scaler.transform(x_test_MEG)
-    x_train_MEG = x_train_MEG[..., np.newaxis]  
-    x_val_MEG = x_val_MEG[..., np.newaxis]  
-    x_test_MEG = x_test_MEG[..., np.newaxis] 
-
-    scaler = RegionWiseStandardizer()
-    psd_train_MEG = scaler.fit_transform(psd_train_MEG, y_train)
-    psd_val_MEG = scaler.transform(psd_val_MEG, y_val)
-    psd_test_MEG = scaler.transform(psd_test_MEG, y_test)
+    x_train_MEG, x_val_MEG, x_test_MEG = scale_newax (x_train_MEG, y_train_MEG, x_val_MEG, y_val_MEG, x_test_MEG, y_test_MEG, scaler=RegionWiseStandardizer())
 
     ###################################################################################################################################
     
@@ -318,7 +180,6 @@ for fold_idx, (train_idx, block_idx) in enumerate(kf.split(data_EEG, y)):
     print(f"\n\nx_train shape: {x_train.shape}, x_val_MEG shape: {x_val.shape}, x_test_MEG shape: {x_test.shape}\n\n")
     print(f"\n\npsd_train shape: {psd_train.shape}, psd_val_MEG shape: {psd_val.shape}, psd_test_MEG shape: {psd_test.shape}\n\n")
 
-    
     # reconstruction loss: MSE
     # reconstruction metric: MAE
 
@@ -344,9 +205,8 @@ for fold_idx, (train_idx, block_idx) in enumerate(kf.split(data_EEG, y)):
 
     save_training_results(model, storia, savedir+f"Split_{split_num}/")
 
-
     # Compute performances varying the region
-    tmp_df = evaluate_encoder_decoder_spectra_by_region(model, x_test, psd_test, y_test, save_name=savedir+f"Split_{split_num}/region_performance_split_{split_num}.csv")
+    tmp_df = evaluate_encoder_decoder_spectra_by_region(model, x_test, psd_test, y_test_EEG, save_name=savedir+f"Split_{split_num}/region_performance_split_{split_num}.csv")
     tmp_df["Split_seed"] = random_seed
     tmp_df["DataType"] = DataType
     tmp_df["subject"] = subject

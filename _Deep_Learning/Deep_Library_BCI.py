@@ -210,6 +210,10 @@ class MultiTaskModel(tf.keras.Model):
 
 
 class MultiTaskModel_PowerSpectra(tf.keras.Model):
+    """
+    The Runnig class of the models.
+
+    """
     def __init__(
         self,
         input_shape = (128,1),
@@ -223,7 +227,8 @@ class MultiTaskModel_PowerSpectra(tf.keras.Model):
         latent_activation =  None, # use tanh if you want to compare with handextracted features ???
         use_GRU = False,
         build_convolutional_decoder = False,
-        EEG_concat_MEG = False,
+        convolutional_latent = True,
+        EEG_concat_MEG = False, # not so explicit, hard to understand. used when I have multimodality EEG and MEG
         **kwargs
     ):
         super().__init__(**kwargs)
@@ -237,6 +242,7 @@ class MultiTaskModel_PowerSpectra(tf.keras.Model):
         self.latent_activation = latent_activation
         self.conv_decoder = build_convolutional_decoder
         self.EEG_concat_MEG = EEG_concat_MEG
+        self.convolutional_latent = convolutional_latent
 
         # Build components
         if use_GRU:
@@ -259,20 +265,59 @@ class MultiTaskModel_PowerSpectra(tf.keras.Model):
             x = layers.Conv1D(filters, self.kernel_size, padding="same")(x)
             # x = layers.BatchNormalization()(x)            
             x = self.activation_fn()(x)
-            x = layers.AveragePooling1D(pool_size=2)(x)                        # downsample by 2 n_filters times (4-> shape is 128/16 = 8)
+            x = layers.AveragePooling1D(pool_size=2)(x)       # downsample by 2 n_filters times (4-> shape is 128/16 = 8)
             if n_layer < len(self.conv_filters) -1 :
                 x = layers.Dropout(0.15)(x)
 
-        x = layers.Flatten()(x) # 8 * 128 = 1024
 
-        # x = layers.Dense(self.latent_dim*2)(x) # TODO yes or no?? (Attenttion to batch norm here)
-        #x = self.activation_fn(x)
-        latent = layers.Dense(self.latent_dim, name="latent", activation=self.latent_activation)(x)
+        if self.convolutional_latent:
+            # Add an hand-crafted locally connected layer as last layer.
+            # It is useful to not have weights sharing, because each latent dimension 
+            # can learn to encode a specific mode, so it should not share weights with the other dimensions.
+            # in this way it is a little bit more a Dense layer, but preserve the convolutional structure
+            # And i can use a convolutional structure for the second taraining phase
+
+            def apply_mask_for_locally_connected(t):
+                # Here i am trying to build a locally connected layer
+                # Keras does not support anymore the locally connected, so I implement mine
+                length = tf.shape(t)[1]
+                mask = tf.eye(length)
+                mask = tf.reshape(mask, (1, length, length))
+                return t * mask
+            
+            def check_length(t):
+                length = tf.shape(t)[1]
+                tf.debugging.assert_equal(length, self.latent_dim, 
+                        message=f"Actual latent dim ({length}) is not the desired one ({self.latent_dim})!")
+                return t
+            
+            x = layers.Conv1D(filters//2, self.kernel_size, padding="same")(x)
+            x = self.activation_fn()(x)
+    
+            x = layers.Lambda(check_length)(x)
+            
+            # Build my locally connected layer
+            x = layers.Conv1D(self.latent_dim, 1, padding="same", activation="linear")(x)
+            print("shape_print number 1", x.shape)
+            x = layers.Lambda(apply_mask_for_locally_connected, name="masked_for_locally_connected")(x)
+            print("shape_print number 2", x.shape)
+            latent = layers.Lambda(lambda t: tf.reduce_sum(t, axis=-1, keepdims=True),
+                                name="latent")(x)
+
+            print("shape_print number 3", latent.shape)
+
+
+        else:
+            x = layers.Flatten()(x) # 16 * 128 = 2048
+            latent = layers.Dense(self.latent_dim, name="latent", activation=self.latent_activation)(x)
 
         return models.Model(inputs, latent, name="encoder")
     
 
     def _build_encoder_gru(self):
+        # used if i want to use a gru layer 
+        # (all the tests say it is not useful)
+
         inputs = layers.Input(shape=self.input_shape_, name="encoder_input")
 
         x = inputs
@@ -299,10 +344,18 @@ class MultiTaskModel_PowerSpectra(tf.keras.Model):
     # --------------------------------------------------
     def _build_decoder(self):
 
-        # CONVOLUTIONAL IF NEEDED
+        # CONVOLUTIONAL - IF NEEDED I ouput a convolutional structure as dcoder 
+        # (as output a Conv1D, not a Dense layer)
+        input_shape = (self.latent_dim,1) if self.convolutional_latent else (self.latent_dim,)
+
         if self.conv_decoder:
-            latent_inputs = layers.Input(shape=(self.latent_dim,), name="decoder_input")
-            x = layers.Dense(32*64)(latent_inputs)
+
+            latent_inputs = layers.Input(shape=input_shape, name="decoder_input")
+            if self.convolutional_latent:
+                x = layers.Reshape((self.latent_dim,))(latent_inputs)
+            else:
+                x = latent_inputs
+            x = layers.Dense(32*64)(x)
             x = layers.Reshape((32,64))(x)
 
             for num,filters in enumerate(reversed(self.conv_filters[0:3])):
@@ -320,8 +373,12 @@ class MultiTaskModel_PowerSpectra(tf.keras.Model):
                 outputs = layers.Flatten()(x)
 
         else:
-            latent_inputs = layers.Input(shape=(self.latent_dim,), name="decoder_input")
-            x = layers.Dense(16*128)(latent_inputs)
+            latent_inputs = layers.Input(shape=input_shape, name="decoder_input")
+            if self.convolutional_latent:
+                x = layers.Reshape((self.latent_dim,))(latent_inputs)
+            else:
+                x = latent_inputs
+            x = layers.Dense(16*128)(x)
             x = layers.Reshape((16, 128))(x)
 
             for num,filters in enumerate(reversed(self.conv_filters[0:2])):
@@ -434,6 +491,8 @@ class MultiTaskModel_Multimodal(MultiTaskModel):
     """
     Used to take as  input      EEG (or MEG) 
     and reconstruct the other   MEG (or EEG)
+
+    not used so much, i tested that this is a little failure
     """
     # --------------------------------------------------
     # RE - DEFINE FIT CASES
