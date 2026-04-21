@@ -1,0 +1,223 @@
+# nohup .venv/bin/python _Deep_Learning/Models/Autoencoders/Encoder_1region_region_agnostic_output_power_spectra_EEG_and_MEG.py &> _Deep_Learning/LOGS/Encoder_EEG_MEG_out_2026_04_16_10_30.txt
+
+import time
+from mne.time_frequency import psd_array_multitaper
+from datetime import date
+import os
+from datetime import datetime
+import numpy as np
+from sklearn.model_selection import StratifiedKFold, train_test_split
+import tensorflow as tf
+import subprocess
+import matplotlib.pyplot as plt
+import subprocess
+import pandas as pd 
+from keras import optimizers
+from keras.callbacks import EarlyStopping
+import sys
+
+sys.path.append(os.path.abspath("Codes"))
+sys.path.append(os.path.abspath("_Deep_Learning"))
+
+from Deep_Library_BCI import MultiTaskModel_PowerSpectra
+from Utils import (freq_filter, windowize, save_training_results, plot_random_PowerSpectra_reconstructed,
+                   evaluate_encoder_decoder_spectra_by_region, aggregate_columns_dfs)
+Normalization = "RegionWise" # "RegionWise" or "TraceWise" or "mediatrace,stdregionwise"
+from Utils import TraceWiseStandardizer, RegionWiseStandardizer
+
+from BCI_Library import read_subject
+
+from Utils import load_and_preprocess, split_create_windows, compute_psd, scale_newax
+
+data_folder="Data/"
+subject = 3
+DataType = "EEG+MEG"
+use_GRU = False
+
+today = date.today()
+# print(f"\n\nCurrent working directory: {os.getcwd()}") # Current working directory: /home/silvia/Documents/GitHub/BCI_Project
+
+path = f"_Deep_Learning/Models_trained/Subject_{subject}/{DataType}/Autoencoders/"
+Script_name = "_Deep_Learning/Models/Autoencoders/Encoder_1region_region_agnostic_output_power_spectra_EEG_and_MEG.py"
+Additional_Script_name = "_Deep_Learning/Deep_Library_BCI.py"
+
+tag = "Encoder_timeseries_Decoder_spectra_log_simpleNormalization_EEG_MEG" + ("_GRU_at_beginning" if use_GRU else "") 
+now = datetime.now()
+formatted_time = now.strftime("%Y-%m-%d-%H_%M_%S")
+tag = formatted_time + "_" + tag # /home/silvia/Documents/GitHub/GAN_Prova/GAN/WGAN/tag_time 
+savedir = path+tag+"/"
+
+log_spectra = True             # if compute log of spectra after
+fmin_spectra = 7                # min freq considered in spectra (output)
+fmax_spectra = 31               # max freq considered in spectra (output)
+bandwidth_spectra = 6           # smoothing for computing spectra (6 seems a good compromise)
+
+start = 3           # seconds where to start to extract windows
+sampling_hz = 250;  start = start*sampling_hz
+input_shape = 256   # length of each window
+shift = 85          # points to shift for next window in data_EEG
+num_windows = 7     # how many windows to extract from each trial
+
+end = start + (num_windows-1)*shift + input_shape  # seconds where to end to extract windows (1500 == 6 seconds)
+
+epochs = 200
+batch_monitor=35
+latent_dim = 16
+BATCH_SIZE = 512
+pazienza = 10
+LAST_LAYER_ACTIVATION = "sigmoid"
+tanh = False
+
+n_regions = 68
+random_seed = 224
+
+try:
+    def get_gpu_memory_usage():
+        command = "nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits"
+        memory_usage = subprocess.check_output(command, shell=True).decode("utf-8").strip().split("\n")
+        memory_usage = [int(memory) for memory in memory_usage]
+        return memory_usage
+    mem_usage = get_gpu_memory_usage()
+    # Allow memory growth to prevent TensorFlow from allocating all GPU memory at once
+    gpus = tf.config.experimental.list_physical_devices('GPU')
+    for gpu in gpus:
+        tf.config.experimental.set_memory_growth(gpu, True)
+    # Specify which GPU to use for this script
+    # For example, to use GPU 1: tf.config.experimental.set_visible_devices(gpus[1], 'GPU')
+    tf.config.experimental.set_visible_devices(gpus[np.argmin(mem_usage)], 'GPU')
+except Exception as e:
+    print(f"VADO AVANTI, non scelgo device tf: Occurred {e} \n")
+
+os.mkdir(path+tag)
+# Backup scripts
+with open(Script_name, "r") as f:
+    script_content = f.read()
+with open(savedir+'_Backup_script.txt', "w") as f:
+    f.write(script_content)
+
+with open(Additional_Script_name, "r") as fu:
+    script_content = fu.read()
+with open(savedir+'_Backup_Library.py', "w") as f:
+    f.write("\n\n\n"+"#"*150+"\n"+"#"*45+"  Deep_Library_BCI details  "+"#"*45+"\n"+script_content)
+
+# TODO: 
+# COME NORMALIZZARE? (VAEGG esclude tutti quelli superiori a 400 microV; BrainOmni eachchannel is normalised to zero mean and unitvariance 
+# at sample level)
+###################################################################################################################################
+# Read data_EEG - filter
+# TODO ATTENTION to put Rest before, then MI (for create_labels function)  
+
+data_EEG, rest_len_eeg, mi_len_eeg = load_and_preprocess(data_folder="Data/", modality="EEG", subject=subject, start=start, end=end)
+
+data_MEG, rest_len_meg, mi_len_meg = load_and_preprocess(data_folder="Data/", modality="MEG", subject=subject, start=start, end=end)
+
+assert rest_len_eeg == rest_len_meg and mi_len_eeg == mi_len_meg, "Mismatch in number of Rest or MI trials between EEG and MEG data."
+
+# y shape: (n_trials,) with negative values for Rest and positive for MI
+y = np.concatenate([-np.ones((rest_len_eeg)), np.ones((mi_len_eeg))])
+
+###################################################################################################################################
+# Split - Extract windows
+# preserve balancing of data_EEG
+
+start = time.perf_counter()
+evaluated_by_regions_dataframes = []
+
+n_folds=5
+kf = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=random_seed)
+
+for fold_idx, (train_idx, block_idx) in enumerate(kf.split(data_EEG, y)):
+    split_num = fold_idx+1
+
+    # NORMALIZATION (per region?)
+    # Optimizing EEG ICA Decomposition with Machine Learning: A CNN-Based Alternative to EEGLAB for Fast and Scalable Brain Activity Analysis
+    # Assessing the Role of EEG Biosignal Preprocessing to Enhance Multiscale Fuzzy Entropy in Alzheimer’s Disease Detection
+    # (when applying on multiple subjects) Cross-Subject EEG-Based Emotion Recognition Through Neural Networks With Stratified Normalization 
+    # NORMALIZZA ANCHE PSD
+
+    ############################################################ EEG #############################################################################
+
+    x_train_EEG, y_train_EEG, x_val_EEG, y_val_EEG, x_test_EEG, y_test_EEG = (
+    split_create_windows(data_EEG, y, train_idx, block_idx, n_regions, win_len=input_shape, shift=shift,
+                            random_seed=random_seed)
+                            )
+
+
+    psd_train_EEG, psd_val_EEG, psd_test_EEG, freqs = compute_psd(
+        x_train_EEG, x_val_EEG, x_test_EEG, y_train_EEG, y_val_EEG, y_test_EEG, 
+        sampling_hz, fmin_spectra, fmax_spectra, bandwidth_spectra, log_spectra, scaler=RegionWiseStandardizer()
+        )
+
+    x_train_EEG, x_val_EEG, x_test_EEG = scale_newax (x_train_EEG, y_train_EEG, x_val_EEG, y_val_EEG, x_test_EEG, y_test_EEG, scaler=RegionWiseStandardizer())
+    
+    
+    ######################################################### MEG ######################################################################
+
+    x_train_MEG, y_train_MEG, x_val_MEG, y_val_MEG, x_test_MEG, y_test_MEG = (
+    split_create_windows(data_MEG, y, train_idx, block_idx, n_regions, win_len=input_shape, shift=shift,
+                            random_seed=random_seed)
+                            )
+
+
+    psd_train_MEG, psd_val_MEG, psd_test_MEG, freqs = compute_psd(
+        x_train_MEG, x_val_MEG, x_test_MEG, y_train_MEG, y_val_MEG, y_test_MEG, 
+        sampling_hz, fmin_spectra, fmax_spectra, bandwidth_spectra, log_spectra, scaler=RegionWiseStandardizer()
+        )
+
+
+    x_train_MEG, x_val_MEG, x_test_MEG = scale_newax (x_train_MEG, y_train_MEG, x_val_MEG, y_val_MEG, x_test_MEG, y_test_MEG, scaler=RegionWiseStandardizer())
+
+    ###################################################################################################################################
+    
+    x_train     = np.concatenate( (x_train_EEG, x_train_MEG), axis = -1)
+    x_test      = np.concatenate( (x_test_EEG, x_test_MEG), axis = -1)
+    x_val       = np.concatenate( (x_val_EEG,  x_val_MEG), axis = -1)
+    psd_train   = np.stack([psd_train_EEG, psd_train_MEG], axis=-1)
+    psd_test    = np.stack([psd_test_EEG, psd_test_MEG], axis=-1)
+    psd_val     = np.stack([psd_val_EEG, psd_val_MEG], axis=-1)
+
+
+    print(f"\n\nx_train shape: {x_train.shape}, x_val_MEG shape: {x_val.shape}, x_test_MEG shape: {x_test.shape}\n\n")
+    print(f"\n\npsd_train shape: {psd_train.shape}, psd_val_MEG shape: {psd_val.shape}, psd_test_MEG shape: {psd_test.shape}\n\n")
+
+    # reconstruction loss: MSE
+    # reconstruction metric: MAE
+
+    # classification loss: binary_crossentropy
+    # classification metric: accuracy
+
+    model = MultiTaskModel_PowerSpectra(input_shape = x_train.shape[1:], output_shape = psd_train.shape[1],
+                                         use_decoder=True, use_classifier=False, use_GRU=use_GRU,
+                                         build_convolutional_decoder = True, EEG_concat_MEG = True)
+    optimizer = optimizers.Adam(epsilon=1e-04)
+    model.compile_cases(optimizer, loss_reconstruction="MSE", loss_classification=None)
+
+    # labels_train = (y_train_EEG > 0).astype(int)
+    # labels_val = (y_val_EEG > 0).astype(int)
+    # labels_test = (y_test_EEG > 0).astype(int)
+
+    storia = model.fit_cases(x_train, psd_train, x_val, psd_val, epochs=epochs, batch_size=BATCH_SIZE, 
+                                callbacks=EarlyStopping(monitor="val_loss", patience=pazienza,  restore_best_weights=True, start_from_epoch=20))
+    # EarlyStopping comments:
+    # val_loss in multi-output monitors the total loss (weighted);
+    # patience 10 is good For Classification only
+    plot_random_PowerSpectra_reconstructed(model, x_test[:,:,:], psd_test, freq_bins=freqs, n_samples=10, save_dir=savedir+f"Split_{split_num}/reconstruction_plots_{split_num}")
+
+    save_training_results(model, storia, savedir+f"Split_{split_num}/")
+
+    # Compute performances varying the region
+    tmp_df = evaluate_encoder_decoder_spectra_by_region(model, x_test, psd_test, y_test_EEG, save_name=savedir+f"Split_{split_num}/region_performance_split_{split_num}.csv")
+    tmp_df["Split_seed"] = random_seed
+    tmp_df["DataType"] = DataType
+    tmp_df["subject"] = subject
+    tmp_df["Features"] = "Encoder_PowerSpectra_extracted"
+    tmp_df["Comments"] = "-"
+    tmp_df["Date"] = today
+    tmp_df["WindowsNormalization"] = Normalization
+    evaluated_by_regions_dataframes.append(tmp_df)
+
+aggregated_df = aggregate_columns_dfs(evaluated_by_regions_dataframes, cols_to_aggregate=["n_windows", "MSE_mean", "MSE_std", "MAE_mean", "MAE_std"])
+aggregated_df.to_pickle(f"{savedir}aggregated_region_performance.pkl")
+
+print("\n\n\nTEMPOO per 5 folds", time.perf_counter()-start, "\n\n\n")
+
