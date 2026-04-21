@@ -213,6 +213,7 @@ def plot_violin_all_subj(Dataframe_performances,  num_settings_showed,  dict_fix
     if savepath:
         plt.savefig(savepath,dpi=300)
     plt.show()
+    return fig, ax
     
 def plot_violin_track_single_fold(PerformanceData,num_settings_showed_per_subject,
                                  dict_fixed_selection,dict_per_setting,
