@@ -219,7 +219,7 @@ def split_create_windows(data, y, train_idx, block_idx, n_regions, win_len,
 
     return x_train, y_train, x_val, y_val, x_test, y_test
 
-def compute_psd(x_train, x_val, x_test, y_train, y_val, y_test, sampling_hz, fmin_spectra, fmax_spectra, bandwidth_spectra, log_spectra, scaler):
+def compute_psd(x_train, x_val, x_test, y_train, y_val, y_test, sampling_hz, fmin_spectra, fmax_spectra, bandwidth_spectra, log_spectra, scaler=None):
     # x_train should be array with shape (n_windows, n_timepoints) before standardization after windowing
     psd_train, freqs = psd_array_multitaper(x_train, sfreq=sampling_hz, fmin=fmin_spectra, fmax=fmax_spectra,
                             bandwidth=bandwidth_spectra, adaptive=True, verbose=False)
@@ -231,10 +231,11 @@ def compute_psd(x_train, x_val, x_test, y_train, y_val, y_test, sampling_hz, fmi
         psd_train = np.log10(psd_train)
         psd_val = np.log10(psd_val)
         psd_test = np.log10(psd_test)
-
-    psd_train = scaler.fit_transform(psd_train, y_train)
-    psd_val = scaler.transform(psd_val, y_val)
-    psd_test = scaler.transform(psd_test, y_test)
+        
+    if scaler is not None:
+        psd_train = scaler.fit_transform(psd_train, y_train)
+        psd_val = scaler.transform(psd_val, y_val)
+        psd_test = scaler.transform(psd_test, y_test)
     
     return psd_train, psd_val, psd_test, freqs
 

@@ -654,7 +654,7 @@ def extract_features_from_spectra_more_bands(wpsdMI, wpsdRest, selected_regions,
     For the selected ROIs. Selected previously
     ----------
     
-    - welch spectra of the data: (n_trials x n_ROIs x n_freqs)
+    - wpsdxx -> welch spectra of the data: (n_trials x n_ROIs x n_freqs) # Works also with other way of estimating Power, not necessarly Welch (!?)
     - selected_regions
     - frequencies corresponding to the bins in welch spectra (n_freqs)
 
