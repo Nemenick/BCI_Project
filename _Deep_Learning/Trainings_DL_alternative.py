@@ -1,5 +1,7 @@
 # nohup /home/silvia/Documents/GitHub/BCI_Project/.venv/bin/python /home/silvia/Documents/GitHub/BCI_Project/_Deep_Learning/Trainings_DL_alternative.py &> _Deep_Learning/LOGS/2nd_training/2026_02_16_10_30.txt
-
+## Training From Donor Subject to Second Training Subject
+# features extracted from the encoder of the model trained on the donor subject, 
+# classification performed on Second-Training subject.
 data_folder="Data/" #and libraries and funcitons
 import sys
 import numpy as np
