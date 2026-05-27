@@ -512,7 +512,7 @@ def compute_welch(data_MI, data_Rest, sfreq=250, starttime=250, endtime=250,
     ----------
     - data_MI, data_Rest: (n_trials x n_ROIs x n_samples).
     - sfreq: sampling frequency
-    - starttime, endtime : in secs, Segment boundaries to apply to data.
+    - starttime, endtime : in samples, Segment boundaries to apply to data.
     - kargs_welch : dict, Parameters for scipy.signal.welch()
         kargs = {"sfreq":sfreq, "fmin":fmin, "fmax":fmax,
                 "n_per_seg":n_per_seg, "n_fft":n_fft,

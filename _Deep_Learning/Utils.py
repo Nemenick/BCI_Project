@@ -164,8 +164,8 @@ def load_and_preprocess(data_folder, modality, subject, start, end):
 
 def split_create_windows(data, y, train_idx, block_idx, n_regions, win_len,
                           shift, random_seed=224, regione=None,
-                          start_train=0, end_train=-1,
-                          start_val_test=0, end_val_test=-1):
+                          start_train=0, end_train=None,
+                          start_val_test=0, end_val_test=None):
     X_train = data[train_idx][:,:,start_train:end_train]
     y_train = y[train_idx]
     # X_Train shape: (n_trials_train, n_regions, n_timepoints)
