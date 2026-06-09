@@ -1,6 +1,7 @@
 # nohup /home/silvia/Documents/GitHub/BCI_Project/.venv/bin/python /home/silvia/Documents/GitHub/BCI_Project/_Deep_Learning/Trainings_DL_alternative.py &> _Deep_Learning/LOGS/2nd_training/2026_02_16_10_30.txt
-## Training and testing on the whole 5 sec window.
-# Features are extracted from encoder trained on 1s windows
+## Training From Donor Subject to Second Training Subject
+# features extracted from the encoder of the model trained on the donor subject, 
+# classification performed on Second-Training subject.
 data_folder="Data/" #and libraries and funcitons
 import sys
 import numpy as np
@@ -16,6 +17,7 @@ from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
 from sklearn.model_selection import StratifiedKFold, train_test_split
 import tqdm
 import re 
+import time
 
 sys.path.append(os.path.abspath("Codes"))
 
@@ -69,21 +71,31 @@ Rows_all_subjects = pd.DataFrame({
     "Date": []
 })
 
+DataType = "EEG+MEG"
+Region_Selection= "Cohen's d effect size selection starting from 3s 32 regions" # "-"
+num_best_ROIs = 32
+region_specific = False
+
+CNN_o_Autoencoder = "Autoencoder" # Autoencoder, # CNN, #SupervisedAutoencoder
+
+saveresults = True
+filepath_ori = "Results/BCI_Performances/DNN/BCI_Performances_DNN_subject_"
+all_subjects_name = "Results/BCI_Performances/DNN/All_subjects_BCI_Performances_ultimate_DNN_region_selection_from_3s_32regions.pkl"
+
+Features_name = CNN_o_Autoencoder + "_extracted"
+
 # To be changed
 # Tutti_soggetti = [0]
 Addestramento = "Encoder_timeseries_Decoder_spectra_log_simpleNormalization_EEG_MEG"
 pattern = re.compile(r"^\d{4}-\d{2}-\d{2}-\d{2}_\d{2}_\d{2}_" + re.escape(Addestramento) + r"$")
-saveresults = False
-filepath_ori = "../Results/BCI_Performances/DNN/BCI_Performances_DNN_subject_"
+
+tempo_computazionale_iniziale = time.perf_counter()
+
 
 for Tutti_soggetti in tqdm.tqdm([[i] for i in range(20)]):
 
-    DataType = "EEG+MEG"
-    CNN_o_Autoencoder = "Autoencoder" # Autoencoder, # CNN, #SupervisedAutoencoder
 
-    region_specific = False
-
-    model_path_1 = f"../_Deep_Learning/Models_trained/Subject_"
+    model_path_1 = f"_Deep_Learning/Models_trained/Subject_"
     # model path 2 = f"{subject_index}/"
     # model path 2.5 = f"{DataType}/"
     model_path_3 = f"{CNN_o_Autoencoder}" + ("s/" if CNN_o_Autoencoder=="Autoencoder" else "/")
@@ -128,16 +140,11 @@ for Tutti_soggetti in tqdm.tqdm([[i] for i in range(20)]):
 
 
 
+
     today = date.today()
     sfreq = 250
-
     seed = 224
-
-    Features_name = CNN_o_Autoencoder + "_extracted"
-    Region_Selection= "Cohen's d effect size selection" # "-"
-
     PFR = True
-
     random_seed=224
 
     n_folds=5
@@ -145,16 +152,13 @@ for Tutti_soggetti in tqdm.tqdm([[i] for i in range(20)]):
     today = date.today()
     sfreq = 250
 
-    start = 1           # seconds where to start to extract windows
+    start = 3           # seconds where to start to extract windows
     sampling_hz = 250;  start = start*sampling_hz
     input_shape = 256   # length of each window
-    shift = 250          # points to shift for next window in data
-    num_windows = 5     # how many windows to extract from each trial
+    shift = 85          # points to shift for next window in data
+    num_windows = 7     # how many windows to extract from each trial
 
     end = start + (num_windows-1)*shift + input_shape  # seconds where to end to extract windows (1500 == 6 seconds)
-
-    num_best_ROIs = 8
-
 
     verbose = False
 
@@ -193,7 +197,7 @@ for Tutti_soggetti in tqdm.tqdm([[i] for i in range(20)]):
                 data_2_Rest_EEG = read_subject(data_folder, "EEG", "Baseline",subject_index,verbose=verbose)
                 data_2_MI_EEG = read_subject(data_folder, "EEG", "MI",subject_index,verbose=verbose)
                 data_EEG = np.concatenate((data_2_Rest_EEG, data_2_MI_EEG), axis=0)
-                WMI_EEG, WRe_EEG = compute_power_spectra(data_2_MI_EEG,data_2_Rest_EEG)
+                WMI_EEG, WRe_EEG = compute_power_spectra(data_2_MI_EEG,data_2_Rest_EEG, starttime=750)
                 data_EEG = freq_filter(data_EEG, sf=250, freqs=[4,45], type_filter="bandpass") # axis = -1 by default
                 data_EEG = data_EEG[:,:,start:end]        #  data.shape = (192, rois_selected, 748)
 
@@ -201,7 +205,7 @@ for Tutti_soggetti in tqdm.tqdm([[i] for i in range(20)]):
                 data_2_Rest_MEG = read_subject(data_folder, "MEG", "Baseline",subject_index,verbose=verbose)
                 data_2_MI_MEG = read_subject(data_folder, "MEG", "MI",subject_index,verbose=verbose)
                 data_MEG = np.concatenate((data_2_Rest_MEG, data_2_MI_MEG), axis=0)
-                WMI_MEG, WRe_MEG = compute_power_spectra(data_2_MI_MEG,data_2_Rest_MEG)
+                WMI_MEG, WRe_MEG = compute_power_spectra(data_2_MI_MEG,data_2_Rest_MEG, starttime=750)
                 data_MEG = freq_filter(data_MEG, sf=250, freqs=[4,45], type_filter="bandpass") # axis = -1 by default
                 data_MEG = data_MEG[:,:,start:end]        #  data.shape = (192, rois_selected, 748)
 
@@ -225,7 +229,7 @@ for Tutti_soggetti in tqdm.tqdm([[i] for i in range(20)]):
                     regions_selected_EEG = selezione_cohen(WRe_EEG, WMI_EEG, train_idx, num_best_ROIs)
                     regions_selected_MEG = selezione_cohen(WRe_MEG, WMI_MEG, train_idx, num_best_ROIs)
                     regions_selected = list(set(regions_selected_EEG) | set(regions_selected_MEG))
-                    
+                    #regions_selected = [_ for _ in range(68)]
 
 
                     regions_selected.sort()
@@ -260,12 +264,9 @@ for Tutti_soggetti in tqdm.tqdm([[i] for i in range(20)]):
                         x_test = np.concatenate((x_test_EEG, x_test_MEG), axis=-1)  # shape (n_windows, timepoints, 2)
 
 
-                        Features_training_1_regione = np.array(model.encoder(x_train))
-                        Features_test_1_regione = np.array(model.encoder(x_test))
-                        # Features_training_1_regione  shape (n_trials * num_windows,16)
-
-                        Features_training_1_regione =  Features_training_1_regione.reshape((Features_training_1_regione.shape[0]//num_windows, 16*num_windows))
-                        Features_test_1_regione =  Features_test_1_regione.reshape((Features_test_1_regione.shape[0]//num_windows, 16*num_windows))
+                        Features_training_1_regione = model.encoder(x_train)
+                        Features_test_1_regione = model.encoder(x_test)
+                        # Features_training_1_regione  shape (n_windows,16)
                         
                         
                         ################################### Feature Extractions ##########################################
@@ -324,4 +325,7 @@ for Tutti_soggetti in tqdm.tqdm([[i] for i in range(20)]):
             if saveresults:
                 saveresults_pickle(Rows, inputfile=file_input, outputfile=file_output, backup=True)
 
-Rows_all_subjects.to_pickle("../Results/BCI_Performances/DNN/All_subjects_BCI_Performances_DNN_Classification_5s_windows.pkl")
+if saveresults:
+    Rows_all_subjects.to_pickle(all_subjects_name)
+    print("\n\nHo salvato i risultati di tutti i soggetti in ", all_subjects_name)
+print("\n\n\nTEMPOO totale", time.perf_counter()-tempo_computazionale_iniziale, "\n\n\n")
