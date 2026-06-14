@@ -1,8 +1,17 @@
 Tempi che impiego per fare addestramento su 20 soggetti al variare del numero di regioni selezionate
 
+EEG+MEG - selezione cohen
+
 4 regioni   350s     (All_subjects_BCI_Performances_ultimate_DNN_region_selection_from_3s_4regions.pkl)
 8 regioni   450s     (All_subjects_BCI_Performances_ultimate_DNN_region_selection_from_3s_8regions.pkl)
 12 regioni  545s     (All_subjects_BCI_Performances_ultimate_DNN_region_selection_from_3s_12regions.pkl)
 16 regioni  618s     (All_subjects_BCI_Performances_ultimate_DNN_region_selection_from_3s_16regions.pkl)
 20 regioni  720s     (All_subjects_BCI_Performances_ultimate_DNN_region_selection_from_3s_20regions.pkl)
 32 regioni  940s     (All_subjects_BCI_Performances_ultimate_DNN_region_selection_from_3s_32regions.pkl)
+
+EEG (or MEG) selezione single modality
+8 regioni 350s      (All_subjects_BCI_Performances_ultimate_DNN_region_selection_from_3s_{DataType}_only_{DataType}_reg_selection.pkl)
+(real 8) 
+
+EEG+MEG selezione single modality
+8 regioni 350s      (All_subjects_BCI_Performances_ultimate_DNN_region_selection_from_3s_EEG+MEG_only_EEG_reg_selection.pkl)

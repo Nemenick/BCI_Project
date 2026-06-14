@@ -31,6 +31,8 @@ from BCI_Library import  train_single_model,select_regions_Cohen_effect_size, bu
 
 import tensorflow.keras as keras
 
+Important_regions = [4, 5, 32, 33, 44, 45, 48, 49]
+
 # print("\n\n",os.getcwd(),"\n\n")
 
 def compute_power_spectra(data_2_MI, data_2_Rest, starttime=250, endtime=250):
@@ -71,8 +73,8 @@ Rows_all_subjects = pd.DataFrame({
     "Date": []
 })
 
-DataType = "MEG"
-Region_Selection= "Cohen's d effect size selection starting from 3s" # "-"
+DataType = "EEG+MEG"
+Region_Selection= "Cohen's d effect size selection starting from 3s - only EEG selection"#f"Cohen's d effect size selection starting from 3s - only  {DataType} selection" # "-"
 num_best_ROIs = 8
 region_specific = False
 
@@ -80,13 +82,15 @@ CNN_o_Autoencoder = "Autoencoder" # Autoencoder, # CNN, #SupervisedAutoencoder
 
 saveresults = True
 filepath_ori = "Results/BCI_Performances/DNN/BCI_Performances_DNN_subject_"
-all_subjects_name = f"Results/BCI_Performances/DNN/All_subjects_BCI_Performances_ultimate_DNN_region_selection_from_3s_{DataType}.pkl"
+#all_subjects_name = f"Results/BCI_Performances/DNN/All_subjects_BCI_Performances_ultimate_DNN_{DataType}_Important_regions.pkl"
+all_subjects_name = f"Results/BCI_Performances/DNN/All_subjects_BCI_Performances_ultimate_DNN_region_selection_from_3s_EEG+MEG_only_EEG_reg_selection.pkl"
+#all_subjects_name = f"Results/BCI_Performances/DNN/All_subjects_BCI_Performances_ultimate_DNN_region_selection_from_3s_{DataType}_only_{DataType}_reg_selection.pkl"
 
 Features_name = CNN_o_Autoencoder + "_extracted"
 
 # To be changed
 # Tutti_soggetti = [0]
-Addestramento = "Encoder_timeseries_Decoder_spectra_log_simpleNormalization"
+Addestramento = "Encoder_timeseries_Decoder_spectra_log_simpleNormalization_EEG_MEG"
 pattern = re.compile(r"^\d{4}-\d{2}-\d{2}-\d{2}_\d{2}_\d{2}_" + re.escape(Addestramento) + r"$")
 
 tempo_computazionale_iniziale = time.perf_counter()
@@ -105,7 +109,7 @@ for Tutti_soggetti in tqdm.tqdm([[i] for i in range(20)]):
     
     if len(matching_addestramenti) != 1:
         raise Exception(f"Ho trovato {len(matching_addestramenti)} addestramenti corrispondenti a {Addestramento} per il soggetto.", 
-                        "Controlla bene se è quello che vuoi o se c'è un errore nei nomi delle cartelle.")
+                        f"Controlla bene se è quello che vuoi o se c'è un errore nei nomi delle cartelle.\n\n{mm}")
     model_path_4 = matching_addestramenti[0] + "/"
 
     lib_path = model_path_1 + f"{Tutti_soggetti[0]}/" + f"{DataType}/" + model_path_3 + model_path_4
@@ -125,18 +129,18 @@ for Tutti_soggetti in tqdm.tqdm([[i] for i in range(20)]):
     use_GRU = True if "GRU" in model_path_4.replace("/","").split("_") else False
 
     if CNN_o_Autoencoder == "CNN":
-        model = MultiTaskModel_PowerSpectra(input_shape=(256,1), output_shape=24, use_classifier=True, use_decoder=False, use_GRU=use_GRU, build_convolutional_decoder = True, EEG_concat_MEG = False)
+        model = MultiTaskModel_PowerSpectra(input_shape=(256,2), output_shape=24, use_classifier=True, use_decoder=False, use_GRU=use_GRU, build_convolutional_decoder = True, EEG_concat_MEG = True)
     if CNN_o_Autoencoder == "Autoencoder":
-        model = MultiTaskModel_PowerSpectra(input_shape=(256,1), output_shape=24, use_classifier=False, use_decoder=True, use_GRU=use_GRU, build_convolutional_decoder = True, EEG_concat_MEG = False)
+        model = MultiTaskModel_PowerSpectra(input_shape=(256,2), output_shape=24, use_classifier=False, use_decoder=True, use_GRU=use_GRU, build_convolutional_decoder = True, EEG_concat_MEG = True)
     if CNN_o_Autoencoder == "SupervisedAutoencoder":
         try:
-            model = MultiTaskModel_PowerSpectra(input_shape=(256,1), output_shape=24, use_classifier=True, use_decoder=True, use_GRU=use_GRU, build_convolutional_decoder = True, EEG_concat_MEG = False)
+            model = MultiTaskModel_PowerSpectra(input_shape=(256,2), output_shape=24, use_classifier=True, use_decoder=True, use_GRU=use_GRU, build_convolutional_decoder = True, EEG_concat_MEG = True)
         except:
-            model = MultiTaskModel_PowerSpectra(input_shape=(256,1), output_shape=24, use_classifier=True, use_decoder=True, build_convolutional_decoder = True, EEG_concat_MEG = False)
+            model = MultiTaskModel_PowerSpectra(input_shape=(256,2), output_shape=24, use_classifier=True, use_decoder=True, build_convolutional_decoder = True, EEG_concat_MEG = True)
 
 
 
-    model.build(input_shape=(256,1))
+    model.build(input_shape=(256,2))
 
 
 
@@ -228,8 +232,10 @@ for Tutti_soggetti in tqdm.tqdm([[i] for i in range(20)]):
                     # Scelta di regioni: scelgo tutte le regioni tra EEG e MEG
                     regions_selected_EEG = selezione_cohen(WRe_EEG, WMI_EEG, train_idx, num_best_ROIs)
                     regions_selected_MEG = selezione_cohen(WRe_MEG, WMI_MEG, train_idx, num_best_ROIs)
-                    regions_selected = list(set(regions_selected_EEG) | set(regions_selected_MEG))
+                    #regions_selected = list(set(regions_selected_EEG) | set(regions_selected_MEG))
                     #regions_selected = [_ for _ in range(68)]
+                    #regions_selected  = regions_selected_MEG if DataType=="MEG" else regions_selected_EEG
+                    regions_selected = regions_selected_EEG
 
 
                     regions_selected.sort()
@@ -244,28 +250,30 @@ for Tutti_soggetti in tqdm.tqdm([[i] for i in range(20)]):
                         else:
                             model.load_weights(model_path+f"Split_{split_num}/model.weights.h5")
 
+                        x_train_MEG, y_train_MEG, x_val_MEG, y_val_MEG, x_test_MEG, y_test_MEG = (
+                        split_create_windows(data_MEG, y_MEG, train_idx, block_idx, 1, win_len=input_shape, shift=shift,
+                            random_seed=random_seed, regione=regione)
+                            )
+                        x_train_MEG, x_val_MEG, x_test_MEG = scale_newax (x_train_MEG, y_train_MEG, x_val_MEG, y_val_MEG, x_test_MEG, y_test_MEG, scaler=RegionWiseStandardizer())
+                        
+
+                        x_train_EEG, y_train_EEG, x_val_EEG, y_val_EEG, x_test_EEG, y_test_EEG = (
+                        split_create_windows(data_EEG, y_EEG, train_idx, block_idx, 1, win_len=input_shape, shift=shift,
+                            random_seed=random_seed, regione=regione)
+                            )
+                        x_train_EEG, x_val_EEG, x_test_EEG = scale_newax (x_train_EEG, y_train_EEG, x_val_EEG, y_val_EEG, x_test_EEG, y_test_EEG, scaler=RegionWiseStandardizer())
+                        
                         if DataType == "MEG":
-                            x_train_MEG, y_train_MEG, x_val_MEG, y_val_MEG, x_test_MEG, y_test_MEG = (
-                            split_create_windows(data_MEG, y_MEG, train_idx, block_idx, 1, win_len=input_shape, shift=shift,
-                                random_seed=random_seed, regione=regione)
-                                )
-                            x_train_MEG, x_val_MEG, x_test_MEG = scale_newax (x_train_MEG, y_train_MEG, x_val_MEG, y_val_MEG, x_test_MEG, y_test_MEG, scaler=RegionWiseStandardizer())
                             x_train, x_test = x_train_MEG, x_test_MEG
                             y_train, y_test = y_train_MEG, y_test_MEG
-
                         if DataType == "EEG":
-                            x_train_EEG, y_train_EEG, x_val_EEG, y_val_EEG, x_test_EEG, y_test_EEG = (
-                            split_create_windows(data_EEG, y_EEG, train_idx, block_idx, 1, win_len=input_shape, shift=shift,
-                                random_seed=random_seed, regione=regione)
-                                )
-                            x_train_EEG, x_val_EEG, x_test_EEG = scale_newax (x_train_EEG, y_train_EEG, x_val_EEG, y_val_EEG, x_test_EEG, y_test_EEG, scaler=RegionWiseStandardizer())
                             x_train, x_test = x_train_EEG, x_test_EEG
                             y_train, y_test = y_train_EEG, y_test_EEG
                     
                         # TODO unito EEG e MEG per train, val e test
-                        # x_train = np.concatenate((x_train_EEG, x_train_MEG), axis=-1)  # shape (n_windows, timepoints, 2)
-                        # x_test = np.concatenate((x_test_EEG, x_test_MEG), axis=-1)  # shape (n_windows, timepoints, 2)
-
+                        x_train = np.concatenate((x_train_EEG, x_train_MEG), axis=-1)  # shape (n_windows, timepoints, 2)
+                        x_test = np.concatenate((x_test_EEG, x_test_MEG), axis=-1)  # shape (n_windows, timepoints, 2)
+                        y_train, y_test = y_train_MEG, y_test_MEG
 
                         Features_training_1_regione = model.encoder(x_train)
                         Features_test_1_regione = model.encoder(x_test)
