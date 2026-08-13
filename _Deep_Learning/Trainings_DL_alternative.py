@@ -232,10 +232,10 @@ for Tutti_soggetti in tqdm.tqdm([[i] for i in range(20)]):
                     # Scelta di regioni: scelgo tutte le regioni tra EEG e MEG
                     regions_selected_EEG = selezione_cohen(WRe_EEG, WMI_EEG, train_idx, num_best_ROIs)
                     regions_selected_MEG = selezione_cohen(WRe_MEG, WMI_MEG, train_idx, num_best_ROIs)
-                    #regions_selected = list(set(regions_selected_EEG) | set(regions_selected_MEG))
+                    regions_selected = list(set(regions_selected_EEG) | set(regions_selected_MEG))
                     #regions_selected = [_ for _ in range(68)]
                     #regions_selected  = regions_selected_MEG if DataType=="MEG" else regions_selected_EEG
-                    regions_selected = regions_selected_EEG
+                    #regions_selected = regions_selected_EEG
 
 
                     regions_selected.sort()
