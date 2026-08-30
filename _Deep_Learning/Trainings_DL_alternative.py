@@ -74,7 +74,7 @@ Rows_all_subjects = pd.DataFrame({
 })
 
 DataType = "EEG+MEG"
-Region_Selection= "Cohen's d effect size selection starting from 3s - only EEG selection"#f"Cohen's d effect size selection starting from 3s - only  {DataType} selection" # "-"
+Region_Selection= "Important regions "#f"Cohen's d effect size selection starting from 3s - only  {DataType} selection" # "-" # "Important regions"
 num_best_ROIs = 8
 region_specific = False
 
@@ -83,7 +83,7 @@ CNN_o_Autoencoder = "Autoencoder" # Autoencoder, # CNN, #SupervisedAutoencoder
 saveresults = True
 filepath_ori = "Results/BCI_Performances/DNN/BCI_Performances_DNN_subject_"
 #all_subjects_name = f"Results/BCI_Performances/DNN/All_subjects_BCI_Performances_ultimate_DNN_{DataType}_Important_regions.pkl"
-all_subjects_name = f"Results/BCI_Performances/DNN/All_subjects_BCI_Performances_ultimate_DNN_region_selection_from_3s_EEG+MEG_only_EEG_reg_selection.pkl"
+all_subjects_name = f"Results/BCI_Performances/DNN/All_subjects_BCI_Performances_ultimate_DNN_Important_regions.pkl"
 #all_subjects_name = f"Results/BCI_Performances/DNN/All_subjects_BCI_Performances_ultimate_DNN_region_selection_from_3s_{DataType}_only_{DataType}_reg_selection.pkl"
 
 Features_name = CNN_o_Autoencoder + "_extracted"
@@ -230,12 +230,13 @@ for Tutti_soggetti in tqdm.tqdm([[i] for i in range(20)]):
                     Feat_test_regions_selected = None # np.empty()
                     
                     # Scelta di regioni: scelgo tutte le regioni tra EEG e MEG
-                    regions_selected_EEG = selezione_cohen(WRe_EEG, WMI_EEG, train_idx, num_best_ROIs)
-                    regions_selected_MEG = selezione_cohen(WRe_MEG, WMI_MEG, train_idx, num_best_ROIs)
-                    regions_selected = list(set(regions_selected_EEG) | set(regions_selected_MEG))
+                    # regions_selected_EEG = selezione_cohen(WRe_EEG, WMI_EEG, train_idx, num_best_ROIs)
+                    # regions_selected_MEG = selezione_cohen(WRe_MEG, WMI_MEG, train_idx, num_best_ROIs)
+                    # regions_selected = list(set(regions_selected_EEG) | set(regions_selected_MEG))
                     #regions_selected = [_ for _ in range(68)]
                     #regions_selected  = regions_selected_MEG if DataType=="MEG" else regions_selected_EEG
                     #regions_selected = regions_selected_EEG
+                    regions_selected = Important_regions
 
 
                     regions_selected.sort()
